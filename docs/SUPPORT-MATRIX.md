@@ -91,7 +91,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
 | `fuel` | client | `bigDaddy-Fuel`, `cdn-fuel`, `esx-sna-fuel`, `lc_fuel`, `legacyfuel`, `okokGasStation`, `oxide-vehicles`, `ox_fuel`, `ps-fuel`, `qb-fuel`, `qs-fuelstations`, `renewed-Fuel`, `ti_fuel`, `x-fuel` |
-| `weather` | client; server v2 with `oxide-weather` | `cd_easytime`, `night_natural_disasters`, `oxide-weather`, `qb-weathersync`, `renewed-weathersync` |
+| `weather` | client; server v2 with `oxide-weather` | `_default`, `cd_easytime`, `night_natural_disasters`, `oxide-weather`, `qb-weathersync`, `renewed-weathersync` |
 | `vehiclekey` | client | `cd_garage`, `f_realcarkeyssystem`, `jacksam`, `mk_vehiclekeys`, `mrnewbvehiclekeys`, `mVehicle`, `okokGarage`, `oxide-vehicles`, `qb-vehiclekeys`, `qbx_vehiclekeys`, `qs-vehiclekeys`, `renewed-vehiclekeys`, `t1ger_keys`, `wasabi_carlock` |
 | `vehicleOwnership` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
 | `death` | server + client | `_default`, `es_extended`, `oxide-death`, `qb-core`, `qbx_core` (all emit `olink:*:playerDied/Downed/Revived/Respawned/playerDeathStateChanged` — see API.md for per-provider caveats; client `SetSuppressed` is honoured by `oxide-death` only, stub `false` elsewhere) |

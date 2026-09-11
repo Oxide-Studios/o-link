@@ -523,16 +523,16 @@ The oxide-dispatch adapter at [`../modules/dispatch/oxide-dispatch/(server|clien
 
 Oxide resources must use `olink.weather` for weather access. Provider exports, native weather lookup fallbacks, and provider-specific events belong in the bridge. `oxide-weather` also retains its direct exports for developers who do not use o-link.
 
-The full v2 implementation is `oxide-weather`. Other providers keep their existing client methods; unsupported v2 calls return nil/false through the stubs. Check `IsReady()` and returned data, not the existence of a callable stub. A missing provider gives neutral gameplay rather than fabricated temperature/exposure data. Server `GetTime()` returns nil when unavailable so consumers may retain their own documented clock fallback.
+The full v2 implementation is `oxide-weather`. Other providers keep their existing client methods, plus engine-backed `IsRainingAt`, `IsCovered` and `GetExposureAt` on the client; the remaining v2 calls return nil/false through the stubs. Check `IsReady()` and returned data, not the existence of a callable stub. A missing provider gives neutral gameplay rather than fabricated temperature/exposure data. Server `GetTime()` returns nil when unavailable so consumers may retain their own documented clock fallback.
 
 | Method | Side | Contract |
 | --- | --- | --- |
 | `GetResourceName()`, `GetApiVersion()`, `IsReady()` | Both | Selected provider (`none` if unavailable), API version (`2` for this implementation, `0` for a stub), readiness |
 | `GetConditionsAt(coords)` | Both | `{ weather, weights, zone, rain, snow, raining, temperature?, wind, snowLevel, season?, blackout }`; temperature is Celsius, wind speed m/s, direction degrees, precipitation/snow level normalized 0–1 |
-| `IsRainingAt(coords)`, `GetWindAt(coords)`, `GetTemperatureAt(coords)` | Both | Spatial values including regional blending/fronts; nil when unavailable |
+| `IsRainingAt(coords)`, `GetWindAt(coords)`, `GetTemperatureAt(coords)` | Both | Spatial values including regional blending/fronts; nil when unavailable. Under every other provider the client `IsRainingAt` falls back to the engine's current weather type (`RAIN`, `THUNDER`, `CLEARING`) and ignores `coords` |
 | `IsSnowOnGround(coords?)` | Both | Accumulation above the ground threshold; client defaults to local position, server defaults to global accumulation |
 | `GetExposureAt(coords, bucket?)` | Server | `{ known, covered?, bucket?, age? }`. Requests a bounded nearby collision probe when needed. Unknown/stale cover is neutral. Bucket defaults to 0 |
-| `GetExposureAt(coords?)`, `IsCovered(coords?)` | Client | Local streamed collision probe; may yield briefly. Missing collision returns unknown/nil |
+| `GetExposureAt(coords?)`, `IsCovered(coords?)` | Client | Local streamed collision probe; may yield briefly. Missing collision returns unknown/nil. Under every other provider the same upward collision probe runs through the fallback, so cover never depends on a weather resource |
 | `RegisterExposureEntity(entity)`, `UnregisterExposureEntity(entity)` | Client | Register a crop prop to exclude its own collider from nearby roof tests. Ownership and dead handles are cleaned up. Re-register streamed props on weather ready |
 | `GetPlayerExposure(src)` | Server | Server weather + fresh body cover, wetness, configured clothing insulation, and temperature; the consumer computes its own thermal effects |
 | `GetRoadConditionsAt(coords)` | Both | `{ wetness, ice, cellSize }`; nil outside the configured grid or when unavailable. Client getter may yield and uses a short cache |
