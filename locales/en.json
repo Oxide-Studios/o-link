@@ -1,0 +1,18 @@
+{
+  "map": {
+    "mode": "Map mode",
+    "help": "Use the o-link default, combine both islands, show separate island views, or hide Cayo Perico.",
+    "mainland": "Mainland",
+    "cayo": "Cayo Perico",
+    "combined": "Combined",
+    "separate": "Separate",
+    "disabled": "Cayo Perico disabled",
+    "inherit": "Inherit o-link default",
+    "select": "Map region",
+    "loading": "Loading map",
+    "unavailable": "Map unavailable",
+    "denied": "You do not have permission to change map settings.",
+    "usage_default": "Use olink:mapmode combined|separate|disabled",
+    "usage_override": "Use this resource’s :mapmode command with inherit|combined|separate|disabled"
+  }
+}

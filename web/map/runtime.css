@@ -1,0 +1,6 @@
+.olink-map-select {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 30;
+    max-width: 170px; padding: 6px 9px; border: 1px solid #ffffff30; border-radius: 7px;
+    background: #111e2c; color: #e7eef5; font: inherit; font-size: 11px; cursor: pointer; color-scheme: dark;
+}
+.olink-map-select:focus-visible { outline: 2px solid #8eb9df; outline-offset: 2px; }

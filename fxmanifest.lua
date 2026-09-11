@@ -9,11 +9,20 @@ version '1.7.1'
 
 escrow_ignore {
     'config.lua',
+    'locales/*.json',
+    'imports/map/*.lua',
 }
 
 ui_page 'web/index.html'
 
 files {
+    'imports/map/client.lua',
+    'imports/map/settings.lua',
+    'locales/*.json',
+    'web/map/tiles/*.webp',
+    'web/map/runtime.css',
+    'web/map/runtime.js',
+    'web/map/catalog.json',
     'web/index.html',
     'web/style.css',
     'web/app.js',
@@ -23,6 +32,7 @@ shared_scripts {
     '@ox_lib/init.lua',
     'config.lua',
     'core/shared.lua',
+    'modules/map/shared.lua',
     'modules/notify/shared.lua',
     'modules/callback/shared.lua',
     'modules/clothing/**/shared.lua',
@@ -31,6 +41,7 @@ shared_scripts {
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'core/defaults_server.lua',
+    'modules/map/server.lua',
     'modules/framework/**/server.lua',
     'modules/framework/server.lua',
     'modules/character/**/server.lua',
@@ -77,6 +88,7 @@ server_scripts {
 
 client_scripts {
     'core/defaults_client.lua',
+    'modules/map/client.lua',
     'modules/framework/**/client.lua',
     'modules/character/**/client.lua',
     'modules/multichar/**/client.lua',

@@ -19,6 +19,7 @@ It lists implementation folders that exist today. It does not guarantee every im
 | `vehicles` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
 | `vehicleproperties` | client | `modules/vehicles/properties` |
 | `entity` | server + client | built-in framework-agnostic module |
+| `map` | server + client + NUI | built-in shared atlas, mode settings and coordinate helpers |
 | `jobcount` | server | built-in framework-agnostic module |
 
 ### `inventory.AddTrunkItems` / `inventory.GetTrunkItems`

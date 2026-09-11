@@ -69,3 +69,6 @@ Config.Diag = {
 -- When set, every `olink.inventory.GetImagePath` call returns `<base>/<item>.png`.
 -- Example: 'https://r2.qbox.re/myserver/inventory/'
 Config.ImageBaseUrl = nil
+
+-- Persisted map mode. Change it with olink:mapmode.
+Config.MapMode = 'combined'

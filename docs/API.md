@@ -4,6 +4,7 @@ This file documents the public surface that has been verified against the curren
 
 For implementation coverage by resource name, see [`SUPPORT-MATRIX.md`](./SUPPORT-MATRIX.md).
 For standalone server wiring, see [`STANDALONE-INTEGRATION.md`](./STANDALONE-INTEGRATION.md).
+For shared NUI maps, mode settings and calibrated coordinate helpers, see [`MAPS.md`](./MAPS.md).
 
 ## Consuming o-link
 
