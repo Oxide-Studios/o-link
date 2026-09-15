@@ -1,9 +1,9 @@
 # Shared resource maps
 
 o-link owns the calibrated atlas, map definitions, tile URLs, coordinate conversion
-and the default map mode. Carplayer, shops, gangs, dispatch, police, vending and
-weather render it inside their own interfaces. Each resource retains its markers,
-overlays, editing actions and server authorization.
+and the default map mode. Carplayer, shops, gangs, dispatch, police, vending,
+weather and the tablet render it inside their own interfaces. Each resource
+retains its markers, overlays, editing actions and server authorization.
 
 ## Settings
 
@@ -23,9 +23,9 @@ managed by the server's island resources.
 
 Settings are stored in `oxide_settings`. Config files seed missing keys; saved
 values remain authoritative across restarts. No manual SQL migration is required.
-Shops, gangs, police and weather expose the override in their existing settings
-menus. All seven also accept a namespaced command, available to framework admins
-or the server console:
+Shops, gangs, police, weather and the tablet expose the override in their existing
+settings menus. Every consumer also accepts a namespaced command, available to
+framework admins or the server console:
 
 - `olink:mapmode combined|separate|disabled`
 - `oxide-carplayer:mapmode inherit|combined|separate|disabled`
@@ -35,6 +35,7 @@ or the server console:
 - `oxide-police:mapmode inherit|combined|separate|disabled`
 - `oxide-vending:mapmode inherit|combined|separate|disabled`
 - `oxide-weather:mapmode inherit|combined|separate|disabled`
+- `oxide-tablet:mapmode inherit|combined|separate|disabled`
 
 Prefix commands with `/` in game. Without a mode argument, the command prints the
 current saved value in the server console. Mode changes reach open interfaces
@@ -103,6 +104,7 @@ The runtime test uses carplayer's installed Vue package. Run
 `lua tests/map-settings.lua` from o-link for the isolated Lua lifecycle checks.
 
 In game, verify both carplayer views, the shop admin map, gang territory editing,
-dispatch alert thumbnails/hub/heatmap, both police MDT maps, vending markers and
-the weather editor/public radar. Exercise all three default modes and a
-resource override, including Cayo selection, recentering and polygon placement.
+dispatch alert thumbnails/hub/heatmap, both police MDT maps, vending markers, the
+weather editor/public radar and the tablet map app. Exercise all three default
+modes and a resource override, including Cayo selection, recentering and polygon
+placement.

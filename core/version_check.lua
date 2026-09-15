@@ -104,6 +104,41 @@ local function stageFiles(paths)
     return staged
 end
 
+-- Order the staged paths so a failed write cannot leave a half-applied install.
+-- Brand-new files go first: the running manifest never references them, so if
+-- one cannot be written (the updater cannot create folders) nothing in use has
+-- changed. Existing files follow, and fxmanifest.lua goes last so the version
+-- only advances once every other file is in place.
+local function orderPaths(paths)
+    local fresh, existing, manifest = {}, {}, nil
+    for i = 1, #paths do
+        local path = paths[i]
+        if path == 'fxmanifest.lua' then
+            manifest = path
+        elseif LoadResourceFile(RESOURCE, path) then
+            existing[#existing + 1] = path
+        else
+            fresh[#fresh + 1] = path
+        end
+    end
+    table.sort(fresh)
+    table.sort(existing)
+    if manifest then existing[#existing + 1] = manifest end
+    return fresh, existing
+end
+
+-- Returns true, or false plus the path that could not be written.
+local function writeFiles(staged, paths)
+    for i = 1, #paths do
+        local path = paths[i]
+        local content = staged[path]
+        if not SaveResourceFile(RESOURCE, path, content, #content) then
+            return false, path
+        end
+    end
+    return true
+end
+
 local function applyUpdate(fromVer, toVer)
     print(('^3[o-link] Downloading update %s -> %s ...^0'):format(fromVer, toVer))
 
@@ -113,18 +148,24 @@ local function applyUpdate(fromVer, toVer)
     local staged = stageFiles(paths)
     if not staged then return false end
 
-    local written = 0
-    for path, content in pairs(staged) do
-        if SaveResourceFile(RESOURCE, path, content, #content) then
-            written = written + 1
-        else
-            print(('^1[o-link] Failed writing %s. Update may be incomplete -- restart aborted.^0'):format(path))
-            return false
-        end
+    local fresh, existing = orderPaths(paths)
+
+    local ok, failed = writeFiles(staged, fresh)
+    if not ok then
+        print(('^1[o-link] Update %s could not write %s. The updater cannot create new folders, so this release must be installed manually. No file in use was changed.^0'):format(toVer, failed))
+        print(('^1[o-link] Download: ^4%s^0'):format(REPO_URL))
+        return false
+    end
+
+    ok, failed = writeFiles(staged, existing)
+    if not ok then
+        print(('^1[o-link] Failed writing %s. Update may be incomplete. The version was not advanced, so the update is retried on the next start.^0'):format(failed))
+        print(('^1[o-link] If it keeps failing, install it manually: ^4%s^0'):format(REPO_URL))
+        return false
     end
 
     print('^2========================================================^0')
-    print(('^2[o-link] Update %s downloaded (%d files written).^0'):format(toVer, written))
+    print(('^2[o-link] Update %s downloaded (%d files written).^0'):format(toVer, #fresh + #existing))
     print('^2[o-link] Restart your server to apply. Do NOT restart o-link alone --^0')
     print('^2[o-link] dependent resources cache its exports and would desync.^0')
     print('^2========================================================^0')
