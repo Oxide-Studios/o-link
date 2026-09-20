@@ -40,8 +40,10 @@ olink._register('money', {
         if amount <= 0 then return false end
         local charId = GetCharId(src)
         if not charId then return false end
-        local balance = exports['oxide-accounts']:AddMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
-        return balance ~= nil
+        -- oxide-accounts returns `false, err` on failure, so anything other than an
+        -- explicit true means the money did not move.
+        local ok = exports['oxide-accounts']:AddMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
+        return ok == true
     end,
 
     ---@param src number
@@ -53,8 +55,11 @@ olink._register('money', {
         if amount <= 0 then return false end
         local charId = GetCharId(src)
         if not charId then return false end
-        local balance = exports['oxide-accounts']:RemoveMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
-        return balance ~= nil
+        local acc = NormalizeType(accountType)
+        -- Pre-check the balance so insufficient funds is never masked as success.
+        if (exports['oxide-accounts']:GetBalance(charId, acc) or 0) < amount then return false end
+        local ok = exports['oxide-accounts']:RemoveMoney(charId, acc, amount, reason or 'o-link', reason or 'o-link')
+        return ok == true
     end,
 
     ---@param src number
@@ -75,8 +80,8 @@ olink._register('money', {
         if amount <= 0 then return false end
         local charId = ResolveCharId(identifier)
         if not charId then return false end
-        local result = exports['oxide-accounts']:AddMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
-        return result ~= nil
+        local ok = exports['oxide-accounts']:AddMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
+        return ok == true
     end,
 
     ---@param identifier string stateId or charId
@@ -88,8 +93,10 @@ olink._register('money', {
         if amount <= 0 then return false end
         local charId = ResolveCharId(identifier)
         if not charId then return false end
-        local result = exports['oxide-accounts']:RemoveMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
-        return result ~= nil
+        local acc = NormalizeType(accountType)
+        if (exports['oxide-accounts']:GetBalance(charId, acc) or 0) < amount then return false end
+        local ok = exports['oxide-accounts']:RemoveMoney(charId, acc, amount, reason or 'o-link', reason or 'o-link')
+        return ok == true
     end,
 
     ---@param identifier string stateId or charId
