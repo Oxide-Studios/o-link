@@ -152,8 +152,8 @@ The client adapter bridges the framework's native "show character selection" tri
 | `Add(src, accountType, amount, reason?)` | `src: number, accountType: string, amount: number, reason?: string` | `boolean` | Add money to an online player |
 | `Remove(src, accountType, amount, reason?)` | `src: number, accountType: string, amount: number, reason?: string` | `boolean` | Remove money from an online player |
 | `GetBalance(src, accountType)` | `src: number, accountType: string` | `number` | Online balance |
-| `AddOffline(identifier, accountType, amount)` | `identifier: string, accountType: string, amount: number` | `boolean` | Add money offline |
-| `RemoveOffline(identifier, accountType, amount)` | `identifier: string, accountType: string, amount: number` | `boolean` | Remove money offline |
+| `AddOffline(identifier, accountType, amount, reason?)` | `identifier: string, accountType: string, amount: number, reason?: string` | `boolean` | Add money offline. `reason` labels the transaction on backends that keep a ledger; frameworks that write the balance directly ignore it |
+| `RemoveOffline(identifier, accountType, amount, reason?)` | `identifier: string, accountType: string, amount: number, reason?: string` | `boolean` | Remove money offline. Same `reason` handling as `AddOffline` |
 | `GetBalanceOffline(identifier, accountType)` | `identifier: string, accountType: string` | `number` | Offline balance |
 
 ## Module: license (server only)

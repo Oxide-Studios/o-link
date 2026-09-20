@@ -69,24 +69,26 @@ olink._register('money', {
     ---@param identifier string stateId or charId
     ---@param accountType string 'cash'|'bank'
     ---@param amount number
+    ---@param reason string|nil
     ---@return boolean
-    AddOffline = function(identifier, accountType, amount)
+    AddOffline = function(identifier, accountType, amount, reason)
         if amount <= 0 then return false end
         local charId = ResolveCharId(identifier)
         if not charId then return false end
-        local result = exports['oxide-accounts']:AddMoney(charId, NormalizeType(accountType), amount, 'o-link', 'o-link')
+        local result = exports['oxide-accounts']:AddMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
         return result ~= nil
     end,
 
     ---@param identifier string stateId or charId
     ---@param accountType string 'cash'|'bank'
     ---@param amount number
+    ---@param reason string|nil
     ---@return boolean
-    RemoveOffline = function(identifier, accountType, amount)
+    RemoveOffline = function(identifier, accountType, amount, reason)
         if amount <= 0 then return false end
         local charId = ResolveCharId(identifier)
         if not charId then return false end
-        local result = exports['oxide-accounts']:RemoveMoney(charId, NormalizeType(accountType), amount, 'o-link', 'o-link')
+        local result = exports['oxide-accounts']:RemoveMoney(charId, NormalizeType(accountType), amount, reason or 'o-link', reason or 'o-link')
         return result ~= nil
     end,
 
