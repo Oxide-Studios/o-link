@@ -17,7 +17,7 @@ olink._register('tablet', {
 
     ---Register an app the tablet can host. `def.resource` is required: by the
     ---time the call reaches the tablet the invoking resource is o-link itself.
-    ---@param def table { id, label, icon, resource, url?, query?, requires?, order?, color?, readyTimeoutMs? }
+    ---@param def table { id, label, icon, resource, url?, query?, requires?, order?, color?, readyTimeoutMs?, description?, tagline?, category?, publisher?, version? }
     ---@return boolean
     RegisterApp = function(def)
         if type(def) ~= 'table' then return false end
