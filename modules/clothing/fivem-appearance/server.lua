@@ -28,6 +28,15 @@ local function getFullAppearanceData(src)
     return Players[charId]
 end
 
+-- Must write to the same store getFullAppearanceData reads from.
+local function saveSkin(charId, encoded)
+    if olink.framework.GetName() == 'es_extended' then
+        MySQL.update.await('UPDATE users SET skin = ? WHERE identifier = ?', { encoded, charId })
+    else
+        MySQL.update.await('UPDATE playerskins SET skin = ? WHERE citizenid = ? AND active = ?', { encoded, charId, 1 })
+    end
+end
+
 olink._register('clothing', {
     ---@return string
     GetResourceName = function()
@@ -86,9 +95,7 @@ olink._register('clothing', {
         Players[charId].converted = merged
 
         if save then
-            MySQL.update.await('UPDATE playerskins SET skin = ? WHERE citizenid = ? AND active = ?', {
-                json.encode(merged), charId, 1,
-            })
+            saveSkin(charId, json.encode(merged))
         end
         -- Send the caller's payload, not the merged look: a partial edit is already
         -- rendered on the ped, and re-applying every stored slot would strip anything
@@ -190,12 +197,7 @@ olink._nativeTattoos['fivem-appearance'] = {
         if not current or type(current.skin) ~= 'table' then return false end
 
         current.skin.tattoos = tattoos
-        local encoded = json.encode(current.skin)
-        if olink.framework.GetName() == 'es_extended' then
-            MySQL.update.await('UPDATE users SET skin = ? WHERE identifier = ?', { encoded, charId })
-        else
-            MySQL.update.await('UPDATE playerskins SET skin = ? WHERE citizenid = ? AND active = ?', { encoded, charId, 1 })
-        end
+        saveSkin(charId, json.encode(current.skin))
         Players[charId] = nil
         return true
     end,
