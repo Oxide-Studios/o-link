@@ -25,6 +25,9 @@ local polyCancel = nil
 local previewEntity = nil
 local previewModelHash = nil
 local previewAnimMode = false
+-- GhostObject previews a rigid group of props: { { entity, offset, quat }, ... }
+local previewGroup = {}
+local previewGroupHashes = {}
 local currentPromise = nil
 
 -- SKEL_Pelvis: the body-center bone the anim compensation tracks.
@@ -50,6 +53,7 @@ local KIND_BRAND = {
     ped     = { icon = 'user', label = 'Character' },
     vehicle = { icon = 'car', label = 'Vehicle' },
     screen  = { icon = 'screen', label = 'Screen Panel' },
+    object  = { icon = 'cube', label = 'Object' },
 }
 
 local function pushHints(spec)
@@ -66,8 +70,16 @@ local function pushHints(spec)
     })
 end
 
-local function aimHints(kind, scrW, scrH)
+local function aimHints(kind, scrW, scrH, snapOnly)
     local lines = {}
+    if snapOnly then
+        -- Snap points fix position and heading, so rotation and fine-tune don't apply.
+        local brand = KIND_BRAND[kind]
+        return { icon = brand.icon, label = brand.label, phase = 'Aim at a slot', lines = {
+            { { key = 'LMB', desc = 'confirm', tone = 'green' } },
+            { { key = 'RMB / ESC / Bksp', desc = 'cancel', tone = 'neutral' } },
+        } }
+    end
     if kind ~= 'coord' then
         local rot = {
             { key = 'Scroll', desc = 'rotate', tone = 'pink' },
@@ -153,6 +165,10 @@ local function unloadModel()
         SetModelAsNoLongerNeeded(previewModelHash)
         previewModelHash = nil
     end
+    for _, hash in ipairs(previewGroupHashes) do
+        SetModelAsNoLongerNeeded(hash)
+    end
+    previewGroupHashes = {}
 end
 
 -- Entity-picker outline target; cleared through resolve() so external Cancel
@@ -170,6 +186,10 @@ end
 
 local function destroyPreview()
     previewAnimMode = false
+    for _, part in ipairs(previewGroup) do
+        if DoesEntityExist(part.entity) then DeleteEntity(part.entity) end
+    end
+    previewGroup = {}
     if previewEntity and DoesEntityExist(previewEntity) then
         if IsEntityAVehicle(previewEntity) then
             DeleteEntity(previewEntity)
@@ -267,12 +287,75 @@ local function drawGhostQuad(center, heading, pitch, width, height)
     DrawLine(bl.x, bl.y, bl.z, tl.x, tl.y, tl.z, MARKER_R, MARKER_G, MARKER_B, 220)
 end
 
+-- Quaternions are {x, y, z, w}. Heading is a right-handed rotation about +Z,
+-- matching SetEntityHeading and GetOffsetFromEntityInWorldCoords.
+local function quatMul(a, b)
+    return {
+        a[4] * b[1] + a[1] * b[4] + a[2] * b[3] - a[3] * b[2],
+        a[4] * b[2] - a[1] * b[3] + a[2] * b[4] + a[3] * b[1],
+        a[4] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[4],
+        a[4] * b[4] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    }
+end
+
+local function quatAxis(ax, ay, az, degrees)
+    local half = math.rad(degrees) * 0.5
+    local s = math.sin(half)
+    return { ax * s, ay * s, az * s, math.cos(half) }
+end
+
+local function quatRotate(q, v)
+    local tx = 2.0 * (q[2] * v[3] - q[3] * v[2])
+    local ty = 2.0 * (q[3] * v[1] - q[1] * v[3])
+    local tz = 2.0 * (q[1] * v[2] - q[2] * v[1])
+    return {
+        v[1] + q[4] * tx + (q[2] * tz - q[3] * ty),
+        v[2] + q[4] * ty + (q[3] * tx - q[1] * tz),
+        v[3] + q[4] * tz + (q[1] * ty - q[2] * tx),
+    }
+end
+
+-- Group offsets/rotations arrive from another resource's VM as vector3 or plain tables.
+local function readVec(v)
+    if v == nil then return { 0.0, 0.0, 0.0 } end
+    return { (tonumber(v.x or v[1]) or 0.0) + 0.0, (tonumber(v.y or v[2]) or 0.0) + 0.0, (tonumber(v.z or v[3]) or 0.0) + 0.0 }
+end
+
+-- Local rotation of one group member: `quat` wins; otherwise `rotation` degrees
+-- applied about local X, then Y, then Z.
+local function readLocalQuat(def)
+    local q = def.quat
+    if q ~= nil then
+        return { (tonumber(q.x or q[1]) or 0.0) + 0.0, (tonumber(q.y or q[2]) or 0.0) + 0.0,
+            (tonumber(q.z or q[3]) or 0.0) + 0.0, (tonumber(q.w or q[4]) or 1.0) + 0.0 }
+    end
+    local r = readVec(def.rotation)
+    return quatMul(quatAxis(0, 0, 1, r[3]), quatMul(quatAxis(0, 1, 0, r[2]), quatAxis(1, 0, 0, r[1])))
+end
+
+local function applyGroupPose(anchor, heading, valid)
+    local hq = quatAxis(0, 0, 1, heading)
+    for _, part in ipairs(previewGroup) do
+        if DoesEntityExist(part.entity) then
+            local o = quatRotate(hq, part.offset)
+            local wq = quatMul(hq, part.quat)
+            SetEntityCoordsNoOffset(part.entity, anchor.x + o[1], anchor.y + o[2], anchor.z + o[3], false, false, false)
+            SetEntityQuaternion(part.entity, wq[1], wq[2], wq[3], wq[4])
+            if valid then
+                SetEntityDrawOutlineColor(80, 220, 120, 255)
+            else
+                SetEntityDrawOutlineColor(230, 70, 70, 255)
+            end
+        end
+    end
+end
+
 -- Shared loop for point/ped/vehicle/screen placement. Two phases: aim (preview
 -- follows the crosshair raycast) and, after Enter, a gizmo fine-tune phase
 -- (mouse-drag axes to move, scroll rotate, arrow-key nudging with Space step
 -- cycling, gold edge handles resize screens) — fine-tune is what makes MLO
 -- interiors workable when the ray snags the wrong surface.
----@param kind 'ped' | 'vehicle' | 'coord' | 'screen'
+---@param kind 'ped' | 'vehicle' | 'coord' | 'screen' | 'object'
 local function startLoop(kind, o)
     local currentHeading = (o.initialHeading or GetEntityHeading(PlayerPedId())) or 0.0
     local cur = nil
@@ -282,7 +365,17 @@ local function startLoop(kind, o)
     -- Standing peds rest their feet on the ground hit (SetEntityCoords handles the
     -- body offset), so the default lift is 0. Consumers can still raise or lower the
     -- preview with o.zOffset; anim previews measure the posed skeleton instead.
-    local zOffset = (kind == 'ped') and (tonumber(o.zOffset) or 0.0) or 0.0
+    local zOffset = (kind == 'ped' or kind == 'object') and (tonumber(o.zOffset) or 0.0) or 0.0
+    -- Objects can be limited to a reach from the player; out of reach tints the
+    -- ghost red and confirm is ignored.
+    local maxDistance = kind == 'object' and tonumber(o.maxDistance) or nil
+    local placeOk = true
+    -- Snap points ({ x, y, z, w, id }) pull the ghost onto the nearest one in
+    -- range, taking its position and heading. snapOnly refuses anything else.
+    local snaps = kind == 'object' and o.snaps or nil
+    local snapOnly = snaps ~= nil and o.snapOnly == true
+    local snapRadius = tonumber(o.snapRadius) or 0.75
+    local snapped = nil
     -- Screen quads are resizable while aiming (arrow keys) and via the gizmo's
     -- gold handles; the chosen size is returned so consumers can store it per
     -- placement.
@@ -317,7 +410,13 @@ local function startLoop(kind, o)
                 z = tonumber(('%.4f'):format(cur.z)) + 0.0,
                 w = tonumber(('%.2f'):format(currentHeading)) + 0.0,
             }
-            if kind == 'screen' then
+            if kind == 'object' and snapped then
+                result.x, result.y, result.z = snapped.x, snapped.y, snapped.z
+                result.w = snapped.w
+                result.snap = snapped.id
+            elseif kind == 'object' then
+                result.z = tonumber(('%.4f'):format(cur.z + zOffset)) + 0.0
+            elseif kind == 'screen' then
                 -- The preview centered the quad on the aim point;
                 -- store the anchor BELOW it by the consumer's zOffset
                 -- so CreateScreen (anchor + zOffset) lands the live
@@ -358,11 +457,14 @@ local function startLoop(kind, o)
     -- The gizmo has already released NUI focus by the time this fires.
     local function onGizmoDone(outcome)
         if not active then return end
-        if outcome == 'confirm' then
+        if outcome == 'confirm' and not placeOk then
+            phase = 'aim'
+            pushHints(aimHints(kind, scrW, scrH, snapOnly))
+        elseif outcome == 'confirm' then
             confirmAndResolve()
         elseif outcome == 'reaim' then
             phase = 'aim'
-            pushHints(aimHints(kind, scrW, scrH))
+            pushHints(aimHints(kind, scrW, scrH, snapOnly))
         else
             resolve(nil)
         end
@@ -403,7 +505,7 @@ local function startLoop(kind, o)
         })
     end
 
-    pushHints(aimHints(kind, scrW, scrH))
+    pushHints(aimHints(kind, scrW, scrH, snapOnly))
 
     CreateThread(function()
         while active do
@@ -412,7 +514,25 @@ local function startLoop(kind, o)
                 cur = hitCoords
             end
 
-            if previewEntity and DoesEntityExist(previewEntity) then
+            if kind == 'object' then
+                local anchor, heading = vector3(cur.x, cur.y, cur.z + zOffset), currentHeading
+                snapped = nil
+                if snaps then
+                    local bestDist
+                    for _, s in ipairs(snaps) do
+                        local d = #(vector3(s.x, s.y, s.z) - cur)
+                        if d <= snapRadius and (not bestDist or d < bestDist) then
+                            snapped, bestDist = s, d
+                        end
+                    end
+                    if snapped then
+                        anchor, heading = vector3(snapped.x, snapped.y, snapped.z), snapped.w
+                    end
+                end
+                placeOk = (not snapOnly or snapped ~= nil)
+                    and (not maxDistance or #(anchor - GetEntityCoords(PlayerPedId())) <= maxDistance)
+                applyGroupPose(anchor, heading, placeOk)
+            elseif previewEntity and DoesEntityExist(previewEntity) then
                 local px, py, pz = cur.x, cur.y, cur.z + zOffset
                 if previewAnimMode then
                     -- Anim clips pose the body away from the entity origin —
@@ -537,16 +657,16 @@ local function startLoop(kind, o)
                         resized = false
                     end
                     if resized then
-                        pushHints(aimHints(kind, scrW, scrH)) -- live size readout
+                        pushHints(aimHints(kind, scrW, scrH, snapOnly)) -- live size readout
                     end
                 end
 
                 local enter = IsDisabledControlJustPressed(0, 201)
                 local lmb = IsDisabledControlJustPressed(0, 24) or IsControlJustPressed(0, 24)
-                if cur and lmb then
+                if cur and lmb and placeOk then
                     confirmAndResolve()
                     return
-                elseif cur and enter then
+                elseif cur and enter and not snapOnly then
                     enterGizmo()
                 end
 
@@ -567,11 +687,18 @@ local function startLoop(kind, o)
     end)
 end
 
+-- Streamed props register through the archetype path only, so either check
+-- passing means the model can load. Times out to nil rather than erroring: an
+-- error here would surface in the consumer's awaiting thread.
 local function loadModel(model)
     local hash = type(model) == 'number' and model or joaat(model)
-    if not IsModelInCdimage(hash) then return nil end
-    lib.requestModel(hash, 5000)
-    if not HasModelLoaded(hash) then return nil end
+    if not IsModelInCdimage(hash) and not IsModelValid(hash) then return nil end
+    RequestModel(hash)
+    local deadline = GetGameTimer() + 5000
+    while not HasModelLoaded(hash) do
+        if GetGameTimer() > deadline then return nil end
+        Wait(0)
+    end
     return hash
 end
 
@@ -749,6 +876,46 @@ local function GhostVehicle(o)
     end
     ghostify(previewEntity)
     startLoop('vehicle', o)
+    return Citizen.Await(currentPromise)
+end
+
+---Ghost object picker for placeable props. Previews one model, or a rigid group
+---laid out around the anchor exactly as a consumer would spawn it.
+---o = { model?, objects?, initialHeading?, zOffset?, maxDistance?, snaps?, snapOnly?, snapRadius? }
+---objects = { { model, offset?, rotation?, quat? }, ... } — offset is local metres,
+---rotation local degrees (X, then Y, then Z), quat a local {x,y,z,w} that overrides
+---rotation. Unloadable models are skipped; nil if none load.
+---snaps = { { x, y, z, w, id }, ... } — aiming within snapRadius (0.75) of one locks the
+---group to its position and heading; snapOnly refuses to confirm anywhere else.
+---Returns { x, y, z, w, snap? }: the group anchor (surface hit + zOffset, or the snap
+---point) and heading, plus the snap id when snapped.
+local function GhostObject(o)
+    if active then return nil end
+    o = o or {}
+    local defs = type(o.objects) == 'table' and o.objects or { { model = o.model } }
+
+    local pc = GetEntityCoords(PlayerPedId())
+    for _, def in ipairs(defs) do
+        local hash = def.model and loadModel(def.model)
+        if hash then
+            previewGroupHashes[#previewGroupHashes + 1] = hash
+            local entity = CreateObjectNoOffset(hash, pc.x, pc.y, pc.z, false, false, false)
+            if entity and entity ~= 0 then
+                ghostify(entity)
+                SetEntityDrawOutline(entity, true)
+                previewGroup[#previewGroup + 1] = { entity = entity, offset = readVec(def.offset), quat = readLocalQuat(def) }
+            end
+        end
+    end
+    if #previewGroup == 0 then
+        unloadModel()
+        return nil
+    end
+    SetEntityDrawOutlineShader(1)
+
+    active = true
+    currentPromise = promise.new()
+    startLoop('object', o)
     return Citizen.Await(currentPromise)
 end
 
@@ -1290,6 +1457,7 @@ olink._register('placement', {
     GhostPed = GhostPed,
     GhostVehicle = GhostVehicle,
     GhostScreen = GhostScreen,
+    GhostObject = GhostObject,
     Polygon = Polygon,
     IsActive = IsActive,
     Cancel = Cancel,
