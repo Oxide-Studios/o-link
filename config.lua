@@ -42,7 +42,9 @@ Config.Overrides = {
 Config.Debug = true
 
 -- On startup, o-link checks its public GitHub repo for a newer release and
--- prints a notice to the server console. Set to false to disable the check.
+-- prints a notice to the server console. It also checks every other Oxide
+-- resource on this server against the published version list and lists any that
+-- are behind, in one block. Set to false to disable both checks.
 Config.CheckForUpdates = true
 
 -- When true, a detected update is downloaded and written over o-link's own

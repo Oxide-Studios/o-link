@@ -81,7 +81,9 @@ server_scripts {
     'modules/weather/**/server.lua',
     'lifecycle/**/server.lua',
     'core/loader_server.lua',
+    'core/update_lib.lua',
     'core/version_check.lua',
+    'core/catalogue_check.lua',
     'core/known_providers.lua',
     'core/diag_server.lua',
 }

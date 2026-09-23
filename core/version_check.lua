@@ -27,37 +27,7 @@ local PROTECTED = {
     ['config.lua'] = true,
 }
 
-local HEADERS = { ['User-Agent'] = 'o-link-update-check' }
-
--- "X.Y.Z" -> { X, Y, Z }; missing parts default to 0.
-local function parse(version)
-    if type(version) ~= 'string' then return nil end
-    local parts = {}
-    for n in version:gmatch('%d+') do
-        parts[#parts + 1] = tonumber(n)
-    end
-    if #parts == 0 then return nil end
-    return parts
-end
-
--- Returns 1 if a > b, -1 if a < b, 0 if equal.
-local function compare(a, b)
-    for i = 1, math.max(#a, #b) do
-        local x, y = a[i] or 0, b[i] or 0
-        if x ~= y then return x > y and 1 or -1 end
-    end
-    return 0
-end
-
--- Blocking GET. Returns code, body.
-local function httpGet(url)
-    local p = promise.new()
-    PerformHttpRequest(url, function(code, body)
-        p:resolve({ code = code, body = body })
-    end, 'GET', '', HEADERS)
-    local res = Citizen.Await(p)
-    return res.code, res.body
-end
+local parse, compare, httpGet = olink._update.parse, olink._update.compare, olink._update.httpGet
 
 -- Enumerate every file on the branch via the git-tree API (one request).
 -- Returns a list of repo-relative paths, or nil on failure.
@@ -139,6 +109,16 @@ local function writeFiles(staged, paths)
     return true
 end
 
+-- The notice an owner acts on: which version they have, which is published, where to
+-- get it. Printed when auto-download is off, and after any failed download attempt --
+-- an abort that says only "aborted" leaves the owner with nowhere to go.
+local function announce(fromVer, toVer)
+    print('^1========================================================^0')
+    print(('^1[o-link] An update is available: ^3%s^1 -> ^2%s^0'):format(fromVer, toVer))
+    print(('^1[o-link] Download: ^4%s^0'):format(REPO_URL))
+    print('^1========================================================^0')
+end
+
 local function applyUpdate(fromVer, toVer)
     print(('^3[o-link] Downloading update %s -> %s ...^0'):format(fromVer, toVer))
 
@@ -153,14 +133,12 @@ local function applyUpdate(fromVer, toVer)
     local ok, failed = writeFiles(staged, fresh)
     if not ok then
         print(('^1[o-link] Update %s could not write %s. The updater cannot create new folders, so this release must be installed manually. No file in use was changed.^0'):format(toVer, failed))
-        print(('^1[o-link] Download: ^4%s^0'):format(REPO_URL))
         return false
     end
 
     ok, failed = writeFiles(staged, existing)
     if not ok then
         print(('^1[o-link] Failed writing %s. Update may be incomplete. The version was not advanced, so the update is retried on the next start.^0'):format(failed))
-        print(('^1[o-link] If it keeps failing, install it manually: ^4%s^0'):format(REPO_URL))
         return false
     end
 
@@ -206,13 +184,8 @@ CreateThread(function()
 
     local result = compare(remoteVer, localVer)
     if result > 0 then
-        if Config.AutoDownloadUpdates then
-            applyUpdate(localStr, remoteStr)
-        else
-            print('^1========================================================^0')
-            print(('^1[o-link] An update is available: ^3%s^1 -> ^2%s^0'):format(localStr, remoteStr))
-            print(('^1[o-link] Download: ^4%s^0'):format(REPO_URL))
-            print('^1========================================================^0')
+        if not Config.AutoDownloadUpdates or not applyUpdate(localStr, remoteStr) then
+            announce(localStr, remoteStr)
         end
     elseif result < 0 then
         print(('^3[o-link] Running version %s is ahead of published %s (development build).^0'):format(localStr, remoteStr))
