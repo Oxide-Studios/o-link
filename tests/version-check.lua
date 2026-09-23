@@ -59,7 +59,7 @@ end
 
 local function PrintedNotice()
     return Printed('An update is available') and Printed('1.7.2') and Printed('1.8.0')
-        and Printed('https://github.com/WHEREISDAN/o-link')
+        and Printed('https://github.com/Oxide-Studios/o-link')
 end
 
 -- A new folder the updater cannot create: nothing in use changes.

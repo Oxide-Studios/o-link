@@ -13,7 +13,7 @@
 if Config.CheckForUpdates == false then return end
 
 local RESOURCE = GetCurrentResourceName()
-local REPO_OWNER = 'WHEREISDAN'
+local REPO_OWNER = 'Oxide-Studios'
 local REPO_NAME = 'o-link'
 local BRANCH = 'main'
 
