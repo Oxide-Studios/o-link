@@ -3,6 +3,28 @@ local RESOURCE = 'es_extended'
 if GetResourceState(RESOURCE) == 'missing' then return end
 if not olink._guardImpl('Multichar', RESOURCE, RESOURCE) then return end
 
+local ESX = exports[RESOURCE]:getSharedObject()
+
+-- es_extended runs its own spawn chain only when Config.Multichar is false, and
+-- oxide-multichar's `provides 'esx_multicharacter'` makes it true. Nothing else
+-- fires esx:onPlayerSpawn, whose server handler is the only thing that sets
+-- xPlayer.spawned — and Core.SavePlayer returns early when that is false. Without
+-- this the users row (accounts, position, inventory, loadout, metadata) is never
+-- written, silently, for the whole session.
+local function finishEsxSpawn()
+    CreateThread(function()
+        local deadline = GetGameTimer() + 15000
+        while not ESX.IsPlayerLoaded() and GetGameTimer() < deadline do Wait(50) end
+        if not ESX.IsPlayerLoaded() then
+            print('^3[o-link] ESX never finished loading the player, so esx:onPlayerSpawn was skipped. ESX will not save this character.^0')
+            return
+        end
+        TriggerEvent('esx:onPlayerSpawn')
+        TriggerEvent('esx:restoreLoadout')
+        TriggerServerEvent('esx:onPlayerSpawn')
+    end)
+end
+
 olink._register('multichar', {
     GetResourceName = function() return RESOURCE end,
 
@@ -19,9 +41,11 @@ olink._register('multichar', {
 
     -- ESX has no spawn selector — it always spawns at the last saved position
     -- (esx:onPlayerJoined, fired in the server Select, already kicked the load
-    -- chain). Return false so oxide-multichar does its default teleport.
+    -- chain). Close out ESX's spawn chain, then return false so oxide-multichar
+    -- does its default teleport.
     ---@return boolean handled
     SpawnCharacter = function()
+        finishEsxSpawn()
         return false
     end,
 })
