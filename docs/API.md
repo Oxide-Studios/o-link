@@ -504,7 +504,7 @@ The oxide-dispatch adapter at [`../modules/dispatch/oxide-dispatch/(server|clien
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `CreateAlert(data)` | `data: table` | `table\|nil` | Server-authored alert (911, panic, manual) — same shape as `SendAlert` |
+| `CreateAlert(data)` | `data: table` | `table\|nil` | Server-authored alert (911, panic, manual) — same shape as `SendAlert`. Implemented by `oxide-dispatch` and the `_default` fallback (notify + blip at `data.coords` for each job member, returns `{ recipients }`); `nil` on every other backend, so relay through a client `SendAlert` on a falsy return |
 | `GetActiveAlerts(jobFilter?)` | `jobFilter?: string\|string[]` | `table[]` | |
 | `GetAlert(alertId)` | `alertId: integer` | `table\|nil` | |
 | `RespondToAlert(alertId, src)` | `alertId: integer, src: number` | `boolean, string?` | |
