@@ -81,17 +81,24 @@ olink._register('inventory', {
 
         if slot and slot > 0 then
             local inv = GetInv()
-            local items = inv.GetAllItems(charId)
-            local containerId
-            for _, v in ipairs(items or {}) do
+            local wanted = count or 1
+            local containerId, slotMatched
+            -- Slot numbers repeat across containers (pockets and a backpack both have a slot 1),
+            -- so only a stack that can cover the whole count qualifies: RemoveFromSlot takes the
+            -- entire stack when asked for more than it holds, and still reports success.
+            for _, v in ipairs(inv.GetAllItems(charId) or {}) do
                 if v.slot == slot and v.name == item then
-                    containerId = v.containerId
-                    break
+                    slotMatched = true
+                    if (v.amount or v.count or 0) >= wanted then
+                        containerId = v.containerId
+                        break
+                    end
                 end
             end
             if containerId then
-                return inv.RemoveFromSlot(charId, containerId, slot, count) ~= nil
+                return inv.RemoveFromSlot(charId, containerId, slot, wanted) ~= nil
             end
+            if slotMatched then return false end
         end
 
         local success = GetInv().RemoveItem(charId, item, count)
