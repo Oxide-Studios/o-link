@@ -19,17 +19,24 @@ end
 if not olink._guardImpl('Dispatch', '_default', false) then return end
 if dedicatedRunning() then return end
 
+---Each job is also tried in lower case, because QBX stores job names lowercased and a config
+---written as 'Police' would otherwise reach nobody. A player matched twice is alerted once.
 ---@return number recipients
 local function broadcast(data)
-    local recipients = 0
+    local recipients, alerted = 0, {}
     local jobs = type(data.jobs) == 'table' and data.jobs or { data.jobs or 'police' }
     for i = 1, math.min(#jobs, 5) do
         local jobName = jobs[i]
-        if type(jobName) == 'string' and olink.job then
-            local members = olink.job.GetPlayersWithJob(jobName)
-            for _, target in ipairs(members or {}) do
-                TriggerClientEvent('o-link:dispatch:default:alert', target, data)
-                recipients = recipients + 1
+        if type(jobName) == 'string' and jobName ~= '' and olink.job then
+            local names = jobName:lower() == jobName and { jobName } or { jobName, jobName:lower() }
+            for _, name in ipairs(names) do
+                for _, target in ipairs(olink.job.GetPlayersWithJob(name) or {}) do
+                    if not alerted[target] then
+                        alerted[target] = true
+                        TriggerClientEvent('o-link:dispatch:default:alert', target, data)
+                        recipients = recipients + 1
+                    end
+                end
             end
         end
     end
