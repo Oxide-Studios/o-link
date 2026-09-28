@@ -67,7 +67,7 @@ Item entries accept either key spelling: `name` or `item`, and `count` or `amoun
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
 | `notify` | server + client | `brutal_notify`, `confirm`, `fl-notify`, `lation_ui`, `mythic_notify`, `okokNotify`, `oxide-core`, `oxide-notify`, `ox_lib`, `pNotify`, `r_notify`, `t-notify`, `wasabi_notify`, `zsxui` |
-| `helptext` | server + client | server relay plus `cd_drawtextui`, `jg-textui`, `lab-HintUI`, `lation_ui`, `okokTextUI`, `ox_lib`, `zsxui` |
+| `helptext` | server + client | server relay plus `cd_drawtextui`, `jg-textui`, `lab-HintUI`, `lation_ui`, `okokTextUI`, `oxide-helptext`, `ox_lib`, `zsxui`. Only `oxide-helptext` stacks prompts and keeps them per resource; the others show one at a time and receive structured prompts flattened to text |
 | `target` | client | `oxide-target`, `ox_target`, `qb-target`, `sleepless_interact`, `tgiann-target` |
 | `progressbar` | client | `esx_progressbar`, `keep-progressbar`, `lation_ui`, `oxide-progressbar`, `ox_lib`, `qb-progressbar`, `wasabi_uikit`, `zsxui` |
 | `input` | client | `lation_ui`, `ox_lib`, `qb-input` |

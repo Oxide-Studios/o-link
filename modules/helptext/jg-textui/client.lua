@@ -1,10 +1,10 @@
 if not olink._guardImpl('HelpText', 'jg-textui', 'jg-textui') then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        exports['jg-textui']:DrawText(message)
+        exports['jg-textui']:DrawText(olink._helptextText(message))
     end,
 
     Hide = function()

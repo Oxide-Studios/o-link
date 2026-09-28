@@ -1,10 +1,10 @@
 if not olink._guardImpl('HelpText', 'cd_drawtextui', 'cd_drawtextui') then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        TriggerEvent('cd_drawtextui:ShowUI', 'show', message)
+        TriggerEvent('cd_drawtextui:ShowUI', 'show', olink._helptextText(message))
     end,
 
     Hide = function()

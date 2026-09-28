@@ -34,6 +34,7 @@ shared_scripts {
     'core/shared.lua',
     'modules/map/shared.lua',
     'modules/notify/shared.lua',
+    'modules/helptext/shared.lua',
     'modules/callback/shared.lua',
     'modules/clothing/**/shared.lua',
 }

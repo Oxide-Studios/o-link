@@ -1,10 +1,10 @@
 if not olink._guardImpl('HelpText', 'okokTextUI', 'okokTextUI') then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        exports['okokTextUI']:Open(message, 'darkblue', position, false)
+        exports['okokTextUI']:Open(olink._helptextText(message), 'darkblue', olink._helptextPosition(message, position), false)
     end,
 
     Hide = function()

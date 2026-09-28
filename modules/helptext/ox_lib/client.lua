@@ -4,13 +4,14 @@ if not olink._hasOverride('HelpText') and GetResourceState('jg-textui') == 'star
 if not olink._hasOverride('HelpText') and GetResourceState('lab-HintUI') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('lation_ui') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('okokTextUI') == 'started' then return end
+if not olink._hasOverride('HelpText') and GetResourceState('oxide-helptext') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('ZSX_UIV2') == 'started' then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        lib.showTextUI(message, { position = position })
+        lib.showTextUI(olink._helptextText(message), { position = olink._helptextPosition(message, position) })
     end,
 
     Hide = function()

@@ -7,12 +7,13 @@ if not olink._hasOverride('HelpText') and GetResourceState('lab-HintUI') == 'sta
 if not olink._hasOverride('HelpText') and GetResourceState('lation_ui') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('okokTextUI') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('ox_lib') == 'started' then return end
+if not olink._hasOverride('HelpText') and GetResourceState('oxide-helptext') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('ZSX_UIV2') == 'started' then return end
 if not olink._hasOverride('HelpText') and GetResourceState('zsxui') == 'started' then return end
 
 local function Show(message, position)
     if olink.framework and type(olink.framework.ShowHelpText) == 'function' then
-        return olink.framework.ShowHelpText(message, position)
+        return olink.framework.ShowHelpText(olink._helptextText(message), olink._helptextPosition(message, position))
     end
 end
 

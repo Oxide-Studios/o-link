@@ -1,10 +1,10 @@
 if not olink._guardImpl('HelpText', 'lab-HintUI', 'lab-HintUI') then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        exports['lab-HintUI']:Show(message, 'Hint Text')
+        exports['lab-HintUI']:Show(olink._helptextText(message), 'Hint Text')
     end,
 
     Hide = function()

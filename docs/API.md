@@ -338,17 +338,40 @@ want to use.
 
 ## Module: helptext (server + client)
 
+`message` is either a string or a structured prompt:
+
+```lua
+olink.helptext.Show('[E] Open Trunk')
+
+olink.helptext.Show({
+    id = 'trunk',                       -- optional: lets one resource keep several prompts open
+    title = 'Vehicle',                  -- optional
+    icon = 'fa-solid fa-car',           -- optional, Font Awesome class
+    text = 'Parked outside',            -- optional
+    keys = {
+        { key = 'E', label = 'Open Trunk', control = 38 },  -- control: badge shows the player's binding
+        { key = 'G', label = 'Lock' },
+    },
+    position = 'right-center',          -- optional, overrides the position argument
+})
+olink.helptext.Hide('trunk')
+```
+
+Positions: `right-center`, `left-center`, `top-center`, `bottom-center`, `top-left`, `top-right`, `bottom-left`, `bottom-right` (short `left`/`right`/`top`/`bottom` also work on `oxide-helptext`).
+
+With `oxide-helptext`, prompts belong to the resource that showed them: `Hide()` with no id clears only the calling resource's prompts, prompts from different resources stack, and a resource's prompts disappear when it stops. Strings such as `[E] Open`, `[E] - Open`, `[E] Smoke · [H] Stop` and `[E] Open | [G] Lock` render with key badges. Every other provider shows one prompt at a time and receives structured prompts flattened to `Title: text  |  [E] Open Trunk  |  [G] Lock`; `Hide(id)` hides whatever is showing.
+
 ### Server
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `Show(src, message, position?)` | `src: number, message: string, position?: string` | `nil` | Relay helptext to a client |
-| `Hide(src)` | `src: number` | `nil` | Hide helptext for a client |
+| `Show(src, message, position?)` | `src: number, message: string\|table, position?: string` | `nil` | Relay helptext to a client. The prompt is owned by the calling server resource. |
+| `Hide(src, id?)` | `src: number, id?: any` | `nil` | Hide the calling resource's prompt with this `id`, or all of its prompts when omitted |
 
 ### Client
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `Show(message, position?)` | `message: string, position?: string` | `nil` | Show helptext locally |
-| `Hide()` | | `nil` | Hide helptext locally |
+| `Show(message, position?)` | `message: string\|table, position?: string` | `nil` | Show or update a prompt. On `oxide-helptext`, repeating an identical call is free (safe every frame) and an empty message hides the prompt. |
+| `Hide(id?)` | `id?: any` | `nil` | Hide the calling resource's prompt with this `id`, or all of its prompts when omitted |
 
 ## Module: target (client only)
 

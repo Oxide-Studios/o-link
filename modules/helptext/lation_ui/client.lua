@@ -1,10 +1,10 @@
 if not olink._guardImpl('HelpText', 'lation_ui', 'lation_ui') then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        exports.lation_ui:showText({ description = tostring(message), position = position or 'right-center' })
+        exports.lation_ui:showText({ description = olink._helptextText(message), position = olink._helptextPosition(message, position) or 'right-center' })
     end,
 
     Hide = function()

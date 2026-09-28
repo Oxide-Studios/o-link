@@ -1,10 +1,10 @@
 if not olink._guardImpl('HelpText', 'zsxui', 'ZSX_UIV2') then return end
 
 olink._register('helptext', {
-    ---@param message string
+    ---@param message string|table
     ---@param position string|nil
     Show = function(message, position)
-        exports['ZSX_UIV2']:TextUI_Persistent(nil, message, nil, nil, nil)
+        exports['ZSX_UIV2']:TextUI_Persistent(nil, olink._helptextText(message), nil, nil, nil)
     end,
 
     Hide = function()
