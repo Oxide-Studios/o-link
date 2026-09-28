@@ -41,7 +41,92 @@ local BONE_SKIN = 0.10
 local ROT_STEP = 5.0
 local ROT_STEP_FINE = 1.0
 local RAYCAST_DIST = 200.0
-local MARKER_R, MARKER_G, MARKER_B = 232, 176, 68
+
+-- ---------------------------------------------------------------------------
+-- Colors. The server palette is Config.Placement.Palette with any
+-- Config.Placement.Colors overrides on top; a player's own
+-- /olink:placementcolors choice (client KVP) replaces it for them. Resolved
+-- into the upvalues below at load and on change, never per frame.
+-- ---------------------------------------------------------------------------
+local PALETTES = {
+    default = {
+        Marker   = { 232, 176, 68 },
+        Valid    = { 80, 220, 120 },
+        Invalid  = { 230, 70, 70 },
+        Selected = { 255, 220, 0 },
+        Cursor   = { 0, 200, 255 },
+        AxisX    = { 235, 70, 60 },
+        AxisY    = { 80, 210, 70 },
+        AxisZ    = { 80, 140, 255 },
+    },
+    -- Okabe-Ito: red/green pairs become vermillion/sky blue, which stay apart
+    -- under protanopia, deuteranopia and tritanopia.
+    colorblind = {
+        Marker   = { 240, 228, 66 },
+        Valid    = { 86, 180, 233 },
+        Invalid  = { 213, 94, 0 },
+        Selected = { 204, 121, 167 },
+        Cursor   = { 0, 200, 255 },
+        AxisX    = { 213, 94, 0 },
+        AxisY    = { 86, 180, 233 },
+        AxisZ    = { 255, 255, 255 },
+    },
+}
+local PALETTE_KVP = 'placement:palette'
+
+local MARKER_R, MARKER_G, MARKER_B
+local VALID_R, VALID_G, VALID_B
+local INVALID_R, INVALID_G, INVALID_B
+local SELECTED_R, SELECTED_G, SELECTED_B
+local CURSOR_R, CURSOR_G, CURSOR_B
+local gizmoColors
+
+local function channel(col, key, idx, default)
+    local v = col and tonumber(col[key] or col[idx])
+    return v and math.floor(v) or default
+end
+
+local function readColor(col)
+    if type(col) ~= 'table' then return nil end
+    local r, g, b = channel(col, 'r', 1), channel(col, 'g', 2), channel(col, 'b', 3)
+    return r and g and b and { r, g, b } or nil
+end
+
+local function resolvePalette()
+    local own = PALETTES[GetResourceKvpString(PALETTE_KVP)]
+    if own then return own end
+
+    -- Installs that updated keep their old config.lua, so Config.Placement is
+    -- usually absent; that is the default palette, not an error.
+    local cfg = type(Config.Placement) == 'table' and Config.Placement or {}
+    local base = PALETTES[cfg.Palette or 'default']
+    if not base then
+        print(('^3[o-link] Config.Placement.Palette "%s" is not a palette (default, colorblind). Using default.^0'):format(tostring(cfg.Palette)))
+        base = PALETTES.default
+    end
+    local colors = type(cfg.Colors) == 'table' and cfg.Colors or {}
+    local out = {}
+    for role, rgb in pairs(base) do
+        local custom = readColor(colors[role])
+        if colors[role] ~= nil and not custom then
+            print(('^3[o-link] Config.Placement.Colors.%s must be { r, g, b }. Using the palette color.^0'):format(role))
+        end
+        out[role] = custom or rgb
+    end
+    return out
+end
+
+local function applyPalette()
+    local p = resolvePalette()
+    MARKER_R, MARKER_G, MARKER_B = p.Marker[1], p.Marker[2], p.Marker[3]
+    VALID_R, VALID_G, VALID_B = p.Valid[1], p.Valid[2], p.Valid[3]
+    INVALID_R, INVALID_G, INVALID_B = p.Invalid[1], p.Invalid[2], p.Invalid[3]
+    SELECTED_R, SELECTED_G, SELECTED_B = p.Selected[1], p.Selected[2], p.Selected[3]
+    CURSOR_R, CURSOR_G, CURSOR_B = p.Cursor[1], p.Cursor[2], p.Cursor[3]
+    gizmoColors = { axes = { p.AxisX, p.AxisY, p.AxisZ }, size = p.Marker }
+end
+
+applyPalette()
 
 -- ---------------------------------------------------------------------------
 -- NUI hint card (o-link's own ui_page, web/). Pushed on state transitions
@@ -342,9 +427,9 @@ local function applyGroupPose(anchor, heading, valid)
             SetEntityCoordsNoOffset(part.entity, anchor.x + o[1], anchor.y + o[2], anchor.z + o[3], false, false, false)
             SetEntityQuaternion(part.entity, wq[1], wq[2], wq[3], wq[4])
             if valid then
-                SetEntityDrawOutlineColor(80, 220, 120, 255)
+                SetEntityDrawOutlineColor(VALID_R, VALID_G, VALID_B, 255)
             else
-                SetEntityDrawOutlineColor(230, 70, 70, 255)
+                SetEntityDrawOutlineColor(INVALID_R, INVALID_G, INVALID_B, 255)
             end
         end
     end
@@ -475,6 +560,7 @@ local function startLoop(kind, o)
         pushHints(gizmoHints(kind, NUDGE_STEPS[stepIdx]))
         PlacementGizmo.Begin({
             matrix = { x = cur.x, y = cur.y, z = cur.z, heading = currentHeading, pitch = currentPitch },
+            colors = gizmoColors,
             rotate = kind ~= 'coord',
             tilt = kind == 'screen',
             size = kind == 'screen' and {
@@ -1096,8 +1182,8 @@ local function Polygon(o)
         local halfT = thickness / 2
         local numPoints = #points
         for i, pt in ipairs(points) do
-            local r, g, b = 232, 176, 68
-            if i == selectedIdx then r, g, b = 255, 220, 0 end
+            local r, g, b = MARKER_R, MARKER_G, MARKER_B
+            if i == selectedIdx then r, g, b = SELECTED_R, SELECTED_G, SELECTED_B end
             DrawMarker(28, pt.x, pt.y, pt.z, 0,0,0, 0,0,0, 0.18, 0.18, 0.18, r, g, b, 220, false, true, 2, false, nil, nil, false)
             DrawLine(pt.x, pt.y, pt.z - halfT, pt.x, pt.y, pt.z + halfT, r, g, b, 200)
         end
@@ -1105,15 +1191,15 @@ local function Polygon(o)
             for i = 1, numPoints do
                 local p1 = points[i]
                 local p2 = points[i % numPoints + 1]
-                DrawLine(p1.x, p1.y, p1.z + halfT, p2.x, p2.y, p2.z + halfT, 232, 176, 68, 200)
-                DrawLine(p1.x, p1.y, p1.z - halfT, p2.x, p2.y, p2.z - halfT, 232, 176, 68, 200)
+                DrawLine(p1.x, p1.y, p1.z + halfT, p2.x, p2.y, p2.z + halfT, MARKER_R, MARKER_G, MARKER_B, 200)
+                DrawLine(p1.x, p1.y, p1.z - halfT, p2.x, p2.y, p2.z - halfT, MARKER_R, MARKER_G, MARKER_B, 200)
             end
         end
         if numPoints >= 3 then
             for i = 2, numPoints - 1 do
                 local a, b2, c = points[1], points[i], points[i + 1]
-                DrawPoly(a.x, a.y, a.z + halfT, b2.x, b2.y, b2.z + halfT, c.x, c.y, c.z + halfT, 232, 176, 68, 50)
-                DrawPoly(c.x, c.y, c.z + halfT, b2.x, b2.y, b2.z + halfT, a.x, a.y, a.z + halfT, 232, 176, 68, 50)
+                DrawPoly(a.x, a.y, a.z + halfT, b2.x, b2.y, b2.z + halfT, c.x, c.y, c.z + halfT, MARKER_R, MARKER_G, MARKER_B, 50)
+                DrawPoly(c.x, c.y, c.z + halfT, b2.x, b2.y, b2.z + halfT, a.x, a.y, a.z + halfT, MARKER_R, MARKER_G, MARKER_B, 50)
             end
         end
     end
@@ -1153,7 +1239,7 @@ local function Polygon(o)
             local hitPos = raycastFromCam()
             drawPoints()
             if hitPos then
-                DrawMarker(28, hitPos.x, hitPos.y, hitPos.z, 0,0,0, 0,0,0, 0.1, 0.1, 0.1, 0, 200, 255, 220, false, true, 2, false, nil, nil, false)
+                DrawMarker(28, hitPos.x, hitPos.y, hitPos.z, 0,0,0, 0,0,0, 0.1, 0.1, 0.1, CURSOR_R, CURSOR_G, CURSOR_B, 220, false, true, 2, false, nil, nil, false)
             end
             -- Hint card re-pushes only when the displayed state changes.
             local hintKey = ('%s|%d|%.1f|%d'):format(mode, #points, thickness, nudgeIdx)
@@ -1294,11 +1380,6 @@ local function startOverlayThread()
         end
         overlayThread = false
     end)
-end
-
-local function channel(col, key, idx, default)
-    local v = col and tonumber(col[key] or col[idx])
-    return v and math.floor(v) or default
 end
 
 ---Replace a group's overlay markers. markers: array of
@@ -1450,6 +1531,31 @@ local function ClearScreens()
         DestroyScreen(id)
     end
 end
+
+-- Per-player palette. Display-only and local to this client, so it is not
+-- admin-gated: players place props through GhostObject too.
+RegisterCommand('olink:placementcolors', function(_, args)
+    local choice = args[1] and args[1]:lower()
+    if not choice then
+        local own = GetResourceKvpString(PALETTE_KVP)
+        own = PALETTES[own] and own or locale('placement.colors_server')
+        olink.notify.Send(locale('placement.colors_current', own), 'info')
+    elseif choice == 'reset' then
+        DeleteResourceKvp(PALETTE_KVP)
+        applyPalette()
+        olink.notify.Send(locale('placement.colors_reset'), 'success')
+    elseif PALETTES[choice] then
+        SetResourceKvp(PALETTE_KVP, choice)
+        applyPalette()
+        olink.notify.Send(locale('placement.colors_set', choice), 'success')
+    else
+        olink.notify.Send(locale('placement.colors_unknown'), 'error')
+    end
+end, false)
+
+TriggerEvent('chat:addSuggestion', '/olink:placementcolors', locale('placement.colors_help'), {
+    { name = 'palette', help = locale('placement.colors_arg'), required = false },
+})
 
 olink._register('placement', {
     Coord = Coord,

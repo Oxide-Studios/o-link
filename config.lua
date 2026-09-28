@@ -74,3 +74,23 @@ Config.ImageBaseUrl = nil
 
 -- Persisted map mode. Change it with olink:mapmode.
 Config.MapMode = 'combined'
+
+-- Colors the placement tool draws: aim markers, outlines, ghost screens, zone
+-- edges and the fine-tune arrows. Any player can pick their own palette in game
+-- with /olink:placementcolors default|colorblind|reset, which overrides this
+-- for them only.
+Config.Placement = {
+    -- 'default' (amber, green/red) or 'colorblind' (yellow, sky blue/vermillion).
+    Palette = 'default',
+    -- Replace single colors on top of the palette, as { r, g, b } from 0 to 255.
+    Colors = {
+        -- Marker   = { 232, 176, 68 },  -- aim markers, entity outline, ghost screen, zone points and edges, resize handles
+        -- Valid    = { 80, 220, 120 },  -- object outline where it can be placed
+        -- Invalid  = { 230, 70, 70 },   -- object outline where it can't (out of reach, not on a slot)
+        -- Selected = { 255, 220, 0 },   -- selected zone point
+        -- Cursor   = { 0, 200, 255 },   -- zone builder aim point
+        -- AxisX    = { 235, 70, 60 },   -- fine-tune arrows
+        -- AxisY    = { 80, 210, 70 },
+        -- AxisZ    = { 80, 140, 255 },
+    },
+}

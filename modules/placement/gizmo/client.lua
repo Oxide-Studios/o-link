@@ -12,6 +12,7 @@
 --
 -- PlacementGizmo.Begin({
 --     matrix   = { x, y, z, heading, pitch? },
+--     colors   = { axes = { {r,g,b} X, Y, Z }, size = {r,g,b} },  -- the placement palette
 --     rotate   = bool,                    -- false: scroll-rotate disabled (coord)
 --     tilt     = bool,                    -- true: Ctrl+Scroll adjusts pose.pitch (screens)
 --     size     = nil | { w, h, min, max, heading = fn() -> deg, pitch = fn() -> deg },
@@ -45,13 +46,14 @@ local grabSize = 0.0           -- w/h snapshot at grab (size drag)
 local grabDir = nil            -- outward direction snapshot at grab (size drag)
 local grabAnchor = nil         -- edge-midpoint snapshot at grab (size drag)
 
+-- r/g/b and SIZE_* are set per session from Begin's `colors`.
 local AXES = {
-    { dir = vector3(1, 0, 0), r = 235, g = 70,  b = 60 },   -- X red
-    { dir = vector3(0, 1, 0), r = 80,  g = 210, b = 70 },   -- Y green
-    { dir = vector3(0, 0, 1), r = 80,  g = 140, b = 255 },  -- Z blue
+    { dir = vector3(1, 0, 0) },
+    { dir = vector3(0, 1, 0) },
+    { dir = vector3(0, 0, 1) },
 }
 
-local SIZE_R, SIZE_G, SIZE_B = 232, 176, 68  -- placement gold
+local SIZE_R, SIZE_G, SIZE_B
 local HIT_PX = 16  -- cursor-to-handle pixel threshold for hover/grab
 
 local endSession -- fwd (used by the look-mode control reads)
@@ -354,7 +356,12 @@ end
 function PlacementGizmo.Begin(o)
     if active then return false end
     o = o or {}
-    if type(o.matrix) ~= 'table' then return false end
+    if type(o.matrix) ~= 'table' or type(o.colors) ~= 'table' then return false end
+
+    for i, rgb in ipairs(o.colors.axes) do
+        AXES[i].r, AXES[i].g, AXES[i].b = rgb[1], rgb[2], rgb[3]
+    end
+    SIZE_R, SIZE_G, SIZE_B = o.colors.size[1], o.colors.size[2], o.colors.size[3]
 
     opts = o
     outcome = nil

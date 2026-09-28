@@ -14,5 +14,14 @@
     "denied": "You do not have permission to change map settings.",
     "usage_default": "Use olink:mapmode combined|separate|disabled",
     "usage_override": "Use this resource’s :mapmode command with inherit|combined|separate|disabled"
+  },
+  "placement": {
+    "colors_help": "Choose the colors the placement tool shows you",
+    "colors_arg": "default, colorblind, or reset to use the server's colors",
+    "colors_current": "Placement colors: %s",
+    "colors_server": "server default",
+    "colors_set": "Placement colors set to %s.",
+    "colors_reset": "Placement colors reset to the server default.",
+    "colors_unknown": "Unknown palette. Use default, colorblind or reset."
   }
 }

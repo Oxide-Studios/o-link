@@ -189,7 +189,7 @@ o-link/
 
 ## Configuration Status
 
-Six config surfaces exist in [`../config.lua`](../config.lua):
+Eight config surfaces exist in [`../config.lua`](../config.lua):
 
 - `Config.Debug`
 - `Config.Overrides`
@@ -197,6 +197,8 @@ Six config surfaces exist in [`../config.lua`](../config.lua):
 - `Config.AutoDownloadUpdates`
 - `Config.ImageBaseUrl`
 - `Config.Diag`
+- `Config.MapMode` (see [`MAPS.md`](MAPS.md))
+- `Config.Placement`
 
 `Config.Debug` controls loader logging.
 
@@ -204,13 +206,15 @@ Six config surfaces exist in [`../config.lua`](../config.lua):
 
 The same key governs `core/catalogue_check.lua`, which covers every *other* Oxide resource on the server. Those ship through the Cfx.re Portal rather than a repository, so there is nothing for them to compare themselves against individually; instead o-link reads one published version list and prints a single block naming each installed resource that is behind. It runs once, after ten seconds of no resource starting — o-link boots early by design, so checking immediately would read a half-booted server. It is a notice only: escrowed assets cannot self-update the way o-link does. Both checks share `core/update_lib.lua` (version parsing, comparison, and the blocking GET), which loads before either.
 
-Because of that same protection, a customer who updates keeps the `config.lua` they first installed with and is missing every key added since. Two things follow, and both are required of any new config surface: every key must default in code, and `core/loader_server.lua` prints a one-time console notice naming the keys their `config.lua` lacks. `Config.ImageBaseUrl` is excluded from that notice because it ships as `nil`, so absent and present are indistinguishable.
+Because of that same protection, a customer who updates keeps the `config.lua` they first installed with and is missing every key added since. Two things follow, and both are required of any new config surface: every key must default in code, and `core/loader_server.lua` prints a one-time console notice naming the keys their `config.lua` lacks. The notice is one plain informational line, not a warning, because most updated installs will see it. `Config.ImageBaseUrl` is excluded from that notice because it ships as `nil`, so absent and present are indistinguishable.
 
 `Config.AutoDownloadUpdates` (default `false`) downloads a detected update and writes it over o-link's own files; the new files take effect on the next full server restart. It has no effect unless `Config.CheckForUpdates` is also true.
 
 `Config.ImageBaseUrl` (default `nil`) sets the base URL that `olink.inventory.GetImagePath` resolves item images against.
 
 `Config.Diag` configures the `/oxide:diag` support snapshot written by `core/diag_server.lua`: `RequireAce` (an extra ace that grants access alongside the framework admin check), `RecentErrors` (how many captured errors to include when oxide-logger is running), and `SnapshotDir` (a single-level directory, because `SaveResourceFile` only auto-creates one parent). Every key defaults in code, since the auto-updater never overwrites a customer's `config.lua`.
+
+`Config.Placement` sets the colors the placement builders draw: `Palette` (`'default'` or `'colorblind'`) and `Colors` (per-role `{ r, g, b }` overrides on top of the palette). `modules/placement/client.lua` reads it on the client, since `config.lua` is a shared script, and resolves it once at load, so nothing is synced or read per frame. A missing `Config.Placement` or key means the default palette, which is exactly the original look. Each player can replace the server palette for themselves with `/olink:placementcolors default|colorblind|reset`, stored in the client's resource KVP (`placement:palette`). Roles and preset values are listed under the placement module in [`API.md`](API.md).
 
 `Config.Overrides` is consumed during implementation selection. When an override is set for a namespace, only the matching implementation is allowed to load for that namespace and normal priority blocker guards are bypassed for that selected implementation.
 
