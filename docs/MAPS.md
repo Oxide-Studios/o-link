@@ -1,7 +1,7 @@
 # Shared resource maps
 
 o-link owns the calibrated atlas, map definitions, tile URLs, coordinate conversion
-and the default map mode. Carplayer, shops, gangs, dispatch, police, vending,
+and the default map mode. Car Player, shops, gangs, dispatch, police, vending,
 weather and the tablet render it inside their own interfaces. Each resource
 retains its markers, overlays, editing actions and server authorization.
 
@@ -100,10 +100,10 @@ authorization:
 
     node --test o-link/tests/map-runtime.test.mjs
 
-The runtime test uses carplayer's installed Vue package. Run
+The runtime test uses the Vue package installed in `oxide-carplayer/web`. Run
 `lua tests/map-settings.lua` from o-link for the isolated Lua lifecycle checks.
 
-In game, verify both carplayer views, the shop admin map, gang territory editing,
+In game, verify both Car Player views, the shop admin map, gang territory editing,
 dispatch alert thumbnails/hub/heatmap, both police MDT maps, vending markers, the
 weather editor/public radar and the tablet map app. Exercise all three default
 modes and a resource override, including Cayo selection, recentering and polygon
