@@ -734,7 +734,7 @@ Functions reached through `exports['o-link']:olink()` cross the resource boundar
 
 ### Provider precedence
 
-When several phones are installed, o-link uses the first one that is started, and `qb-phone` steps aside for any other phone. An installed `oxide-phone` also wins over `qb-phone` even before it has started, because it starts after o-link. To pick a phone yourself, set `Config.Overrides.Phone` in o-link's `config.lua` to its folder name (for example `'qb-phone'`).
+When several phones are installed, o-link uses the first one that is started, and `qb-phone` steps aside for any other phone. `oxide-phone` starts after o-link, so it is chosen when it is installed: it wins over `qb-phone`, and it steps aside for any other phone that is already running (`gksphone`, `lb-phone`, `okokPhone`, `qs-smartphone`, `qs-smartphone-pro`, `yseries`). While `oxide-phone` is installed but stopped, its functions return their defaults and `IsAvailable()` is `false`. To pick a phone yourself, set `Config.Overrides.Phone` in o-link's `config.lua` to its folder name (for example `'qb-phone'`).
 
 ## Additional verified namespaces
 

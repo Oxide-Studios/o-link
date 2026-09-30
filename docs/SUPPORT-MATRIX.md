@@ -127,7 +127,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | `qs-smartphone` (Lite) | yes | no | no | yes | no | mail | no | yes |
 | `qs-smartphone-pro` | yes | no | yes | yes | no | mail | yes | yes |
 | `yseries` | yes | yes | yes | yes | yes | mail | yes | yes |
-| `oxide-phone` | yes | no | no | yes | no | no | no | no |
+| `oxide-phone` | yes | yes | yes | yes | yes | yes | yes | yes |
 | `_default` (no phone) | no | no | no | no | no | no | no | no |
 
 The app-host functions (`RegisterApp`, `Open`, `Notify` and the rest) are implemented by `oxide-phone` only.

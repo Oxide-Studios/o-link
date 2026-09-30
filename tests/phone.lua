@@ -116,6 +116,34 @@ Load('server', { ['qb-phone'] = 'started', ['qs-smartphone-pro'] = 'started' })
 dofile('modules/phone/qb-phone/server.lua')
 assert(olink.phone.GetResourceName() ~= 'qb-phone', 'qb-phone steps aside for qs-smartphone-pro')
 
+-- oxide-phone (circular provider) registers while installed, gates every call on its state,
+-- and steps aside for another phone that is already running.
+Load('server', { ['oxide-phone'] = 'stopped', ['qb-phone'] = 'started' })
+dofile('modules/phone/oxide-phone/server.lua')
+dofile('modules/phone/qb-phone/server.lua')
+assert(olink.phone.GetResourceName() == 'oxide-phone', 'installed oxide-phone owns the namespace over qb-phone')
+assert(olink.phone.IsAvailable() == false and olink.phone.GetPlayerPhone(1) == false, 'stopped oxide-phone answers defaults')
+assert(olink.phone.SendEmail(1, 'A', 'B', 'C') == false and olink.phone.Notify(1, { app = 'x', message = 'y' }) == false, 'stopped: no delivery')
+local none = olink.phone.GetNumbersByIdentifier('ABC')
+assert(type(none) == 'table' and next(none) == nil, 'stopped: empty numbers')
+assert(handlers['o-link:phone:oxide-phone:sendEmail'], 'oxide-phone registers its validated relay')
+
+Load('server', { ['oxide-phone'] = 'stopped', ['lb-phone'] = 'started' })
+dofile('modules/phone/lb-phone/server.lua')
+dofile('modules/phone/oxide-phone/server.lua')
+assert(olink.phone.GetResourceName() == 'lb-phone', 'a running lb-phone keeps the namespace over an installed oxide-phone')
+
+Config.Overrides = { Phone = 'oxide-phone' }
+Load('server', { ['oxide-phone'] = 'stopped', ['lb-phone'] = 'started' })
+dofile('modules/phone/lb-phone/server.lua')
+dofile('modules/phone/oxide-phone/server.lua')
+assert(olink.phone.GetResourceName() == 'oxide-phone', 'an override picks oxide-phone')
+Config.Overrides = {}
+
+Load('server', { ['oxide-phone'] = 'missing' })
+dofile('modules/phone/oxide-phone/server.lua')
+assert(olink.phone.GetResourceName() == '_default', 'a missing oxide-phone leaves _default in place')
+
 Config.Overrides = { Phone = 'qb-phone' }
 Load('server', { ['qb-phone'] = 'started', ['oxide-phone'] = 'stopped' })
 dofile('modules/phone/qb-phone/server.lua')
