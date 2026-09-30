@@ -3,9 +3,16 @@ if not olink._hasOverride('Phone') and GetResourceState('lb-phone') == 'started'
 if not olink._hasOverride('Phone') and GetResourceState('gksphone') == 'started' then return end
 if not olink._hasOverride('Phone') and GetResourceState('okokPhone') == 'started' then return end
 if not olink._hasOverride('Phone') and GetResourceState('qs-smartphone') == 'started' then return end
+if not olink._hasOverride('Phone') and GetResourceState('qs-smartphone-pro') == 'started' then return end
 if not olink._hasOverride('Phone') and GetResourceState('yseries') == 'started' then return end
+if not olink._hasOverride('Phone') and GetResourceState('oxide-phone') ~= 'missing' then return end
 
 olink._register('phone', {
+    ---@return boolean
+    IsAvailable = function()
+        return GetResourceState('qb-phone') == 'started'
+    end,
+
     ---@return string
     GetPhoneName = function()
         return 'qb-phone'
@@ -16,10 +23,12 @@ olink._register('phone', {
         return 'qb-phone'
     end,
 
-    ---@param email string
+    ---@param sender string
     ---@param title string
     ---@param message string
-    SendEmail = function(email, title, message)
-        TriggerServerEvent('o-link:phone:qb-phone:sendEmail', { email = email, title = title, message = message })
+    ---@return boolean
+    SendEmail = function(sender, title, message)
+        TriggerServerEvent('o-link:phone:qb-phone:sendEmail', { email = sender, title = title, message = message })
+        return true
     end,
 })

@@ -28,13 +28,10 @@ olink._register('phone', {
         local ok, playerEmail = pcall(exports['oxide-phone'].GetEmailAddress, exports['oxide-phone'], src)
         if not ok or not playerEmail then return false end
         local ok2, result = pcall(exports['oxide-phone'].SendServiceEmail, exports['oxide-phone'],
-            email, email .. '@service.com', playerEmail, title, message)
+            email, olink._phone.SenderAddress(email), playerEmail, title, message)
         if ok2 then return result ~= nil end
         return false
     end,
 })
 
-RegisterNetEvent('o-link:phone:oxide-phone:sendEmail', function(data)
-    local src = source
-    olink.phone.SendEmail(src, data.email, data.title, data.message)
-end)
+olink._phone.RegisterEmailRelay('oxide-phone')

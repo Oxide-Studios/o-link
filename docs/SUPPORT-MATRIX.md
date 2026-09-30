@@ -104,7 +104,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
 | `banking` | server | `fd_banking`, `kartik-banking`, `okokBanking`, `oxide-banking`, `qb-banking`, `renewed-banking`, `tgg-banking`, `tgiann-bank`, `wasabi_banking` |
-| `phone` | server + client | `gksphone`, `lb-phone`, `okokPhone`, `oxide-phone`, `qb-phone`, `qs-smartphone`, `yseries` |
+| `phone` | server + client | `_default`, `gksphone`, `lb-phone`, `okokPhone`, `oxide-phone`, `qb-phone`, `qs-smartphone` (V3 + Lite), `qs-smartphone-pro`, `yseries` (per-function support below) |
 | `clothing` | shared + server + client | `esx_skin`, `fivem-appearance`, `illenium-appearance`, `oxide-clothing`, `oxide-identity`, `qb-clothing`, `rcore_clothing` |
 | `dispatch` | server + client | `_default`, `bub-mdt`, `cd_dispatch`, `emergencydispatch`, `fd_dispatch`, `kartik-mdt`, `lb-tablet`, `linden_outlawalert`, `origen_police`, `oxide-dispatch`, `piotreq_gpt`, `ps-dispatch`, `qs_dispatch`, `redutzu-mdt`, `tk_dispatch`, `wasabi_mdt` |
 | `doorlock` | server + client | `doors_creator`, `ox_doorlock`, `qb-doorlock`, `rcore_doorlock` |
@@ -112,6 +112,25 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | `bossmenu` | server + client | `esx_society`, `qb-management`, `qbx_management` |
 | `skills` | server + client | `_default`, `evolent_skills`, `ot_skills`, `pickle_xp` |
 | `logger` | server + client | `ox_lib` (default), `oxide-logger` (optional, free; overrides ox_lib when installed) |
+
+### `phone` per provider
+
+"mail" means the phone cannot text from a named sender, so `SendMessage` delivers the text as mail. "no" returns the default (`false`, `nil` or `{}`). Every third-party column was written from the vendor's own documentation; none has been tested in game by Oxide.
+
+| Provider | `GetPlayerPhone` | `GetSourceByNumber` | `GetNumbersByIdentifier` | `SendEmail` | `SendEmailOffline` | `SendMessage` | `SendNotification` | `IsOpen` (client) |
+|----------|------|------|------|------|------|------|------|------|
+| `gksphone` | yes | yes | no | yes | yes | yes | yes | yes |
+| `lb-phone` | yes | yes | yes (equipped number) | yes | yes | mail | yes | yes |
+| `okokPhone` | yes | yes | no | yes | no | yes | yes | yes |
+| `qb-phone` | yes | yes | yes | yes | yes | mail | no | no |
+| `qs-smartphone` (V3) | yes | no | no | yes | no | yes | yes | yes |
+| `qs-smartphone` (Lite) | yes | no | no | yes | no | mail | no | yes |
+| `qs-smartphone-pro` | yes | no | yes | yes | no | mail | yes | yes |
+| `yseries` | yes | yes | yes | yes | yes | mail | yes | yes |
+| `oxide-phone` | yes | no | no | yes | no | no | no | no |
+| `_default` (no phone) | no | no | no | no | no | no | no | no |
+
+The app-host functions (`RegisterApp`, `Open`, `Notify` and the rest) are implemented by `oxide-phone` only.
 
 ## Lifecycle Adapters
 

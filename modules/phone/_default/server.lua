@@ -7,17 +7,32 @@ if not olink._hasOverride('Phone') and GetResourceState('okokPhone') == 'started
 if not olink._hasOverride('Phone') and GetResourceState('oxide-phone') == 'started' then return end
 if not olink._hasOverride('Phone') and GetResourceState('qb-phone') == 'started' then return end
 if not olink._hasOverride('Phone') and GetResourceState('qs-smartphone') == 'started' then return end
+if not olink._hasOverride('Phone') and GetResourceState('qs-smartphone-pro') == 'started' then return end
 if not olink._hasOverride('Phone') and GetResourceState('yseries') == 'started' then return end
 
 olink._registerDefault('phone', olink._buildStub('phone', {
-    'GetPlayerPhone',
-    'SendEmail',
+    'GetPlayerPhone', 'GetSourceByNumber', 'GetNumbersByIdentifier',
+    'SendEmail', 'SendEmailOffline', 'SendMessage', 'SendNotification',
+    'Open', 'Close', 'Send', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications',
 }, {
     GetPlayerPhone = false,
+    GetSourceByNumber = nil,
+    GetNumbersByIdentifier = function() return {} end,
     SendEmail = false,
+    SendEmailOffline = false,
+    SendMessage = false,
+    SendNotification = false,
+    Open = false,
+    Close = false,
+    Send = false,
+    SetWidgetData = false,
+    Notify = false,
+    DismissNotification = false,
+    ClearNotifications = false,
 }))
 
 olink._registerDefault('phone', {
     GetResourceName = function() return '_default' end,
     GetPhoneName = function() return '_default' end,
+    IsAvailable = function() return false end,
 })

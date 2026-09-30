@@ -683,6 +683,59 @@ Apps post notifications with `Notify`; the tablet draws them, the app never does
 
 The tile badge is the larger of `SetBadge` and the app's pending notifications, so `SetBadge(app, 0)` does not hide them: call `ClearNotifications(app)` once the app has handled them itself. Register the app on `olink:client:tablet:ready` before notifying; a notification for an app the tablet does not know is dropped. Only `message`, `title` and the icon reach the screen; `data` stays in Lua until the tap.
 
+## Module: phone (server + client)
+
+Talks to whichever phone the server runs: `gksphone`, `lb-phone`, `okokPhone`, `oxide-phone`, `qb-phone`, `qs-smartphone` (Quasar V3, with the older Lite build as a fallback), `qs-smartphone-pro` or `yseries`. With no phone installed the `_default` adapter answers every call with its default and warns once per function. Not every phone supports every function; see the phone row in [SUPPORT-MATRIX.md](SUPPORT-MATRIX.md).
+
+### Is a real phone installed?
+
+Call `IsAvailable()`. It is `true` only while a real phone provider is running; `_default` and the stubs return `false` and never warn. Do not compare `GetResourceName()` with `'none'`: `_default` returns `'_default'`, like every `_default` adapter in o-link. Do not gate on `olink.supports('phone.SendEmail')` either, which is also true for the stubs.
+
+`IsAvailable` is new in this version. A released resource that may run against an older o-link must not call it unguarded:
+
+```lua
+local function phoneAvailable()
+    local fn = olink.phone and olink.phone.IsAvailable
+    if fn then
+        local ok, result = pcall(fn)
+        if ok then return result and true or false end
+    end
+    local name = olink.phone and olink.phone.GetResourceName and olink.phone.GetResourceName()
+    return name ~= nil and name ~= 'none' and name ~= '_default'
+end
+```
+
+Functions reached through `exports['o-link']:olink()` cross the resource boundary as callable tables, so `type(fn) == 'function'` is false in your resource: nil-check the member and call it through `pcall`. Apply the same guard to any other function added in this version (`SendMessage`, `SendNotification`, `SendEmailOffline`, `GetSourceByNumber`, `GetNumbersByIdentifier`, `IsOpen`).
+
+### Server
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `IsAvailable()` | | `boolean` | A real phone is running |
+| `GetResourceName()` / `GetPhoneName()` | | `string` | Provider name; `'_default'` with no phone |
+| `GetPlayerPhone(src)` | `src: number` | `string\|false` | The player's current number |
+| `GetSourceByNumber(number)` | `number: string` | `number\|nil` | The online player using that number |
+| `GetNumbersByIdentifier(identifier)` | `identifier: string` | `string[]` | Numbers registered to a character, online or offline. `{}` where the phone cannot answer |
+| `SendEmail(src, sender, subject, message)` | `src: number, sender: string, subject: string, message: string` | `boolean` | Mail to an online player. `sender` is a display name ("Pizza This - Vespucci"); phones whose sender field is an address get a slug (`pizza-this-vespucci@service.com`) and keep the name where they have a name field. A real address passes through unchanged |
+| `SendEmailOffline(identifier, sender, subject, message)` | `identifier: string, ...` | `boolean` | Mail to a character who may be offline. `false` on phones that cannot deliver it |
+| `SendMessage(src, sender, message)` | `src: number, sender: string, message: string` | `boolean` | A text from a named service. Phones that cannot text from a name deliver it as mail (`subject` = `sender`) |
+| `SendNotification(src, data)` | `src: number, data: { title, message, icon?, app? }` | `boolean` | A push notification on the phone |
+| `Open(src, appId?)`, `Close(src)`, `Send(src, appId, message)`, `SetWidgetData(src, id, data)`, `Notify(src, def)`, `DismissNotification(src, id)`, `ClearNotifications(src, appId?)` | as `olink.tablet` | as `olink.tablet` | App host, shaped like the tablet's. Implemented by `oxide-phone` only; `false` on every other provider |
+
+### Client
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `IsAvailable()` | | `boolean` | A real phone is running |
+| `GetResourceName()` / `GetPhoneName()` | | `string` | Provider name |
+| `SendEmail(sender, subject, message)` | `sender: string, subject: string, message: string` | `boolean` | Mail to the local player. Most phones relay it through the server, which checks types, caps the lengths (100 / 100 / 2000) and allows one mail per player every 5 seconds |
+| `IsOpen()` | | `boolean` | The phone is on screen |
+| `RegisterApp`, `UnregisterApp`, `Open`, `Close`, `CloseApp`, `GetCurrentApp`, `Send`, `SetBadge`, `RegisterWidget`, `UnregisterWidget`, `SetWidgetData`, `Notify`, `DismissNotification`, `ClearNotifications` | as `olink.tablet` | as `olink.tablet` | App host. Implemented by `oxide-phone` only; `false` (`GetCurrentApp`: `nil`) elsewhere. Check the return value of `RegisterApp` |
+
+### Provider precedence
+
+When several phones are installed, o-link uses the first one that is started, and `qb-phone` steps aside for any other phone. An installed `oxide-phone` also wins over `qb-phone` even before it has started, because it starts after o-link. To pick a phone yourself, set `Config.Overrides.Phone` in o-link's `config.lua` to its folder name (for example `'qb-phone'`).
+
 ## Additional verified namespaces
 
 These namespaces are present in the current implementation and load through the same self-registration pattern, but this file does not attempt to fully document every function signature in every implementation:
@@ -696,7 +749,6 @@ These namespaces are present in the current implementation and load through the 
 | `radial` | client | 2 |
 | `zones` | client | 2 |
 | `banking` | server | 9 |
-| `phone` | server + client | 7 |
 | `clothing` | shared + server + client | 7 |
 | `dispatch` | server + client | 16 |
 | `doorlock` | server + client | 4 |

@@ -198,12 +198,26 @@ stub('notify', {
 })
 
 stub('phone', {
-    'GetPhoneName', 'GetResourceName', 'GetPlayerPhone', 'SendEmail',
+    'IsAvailable', 'GetPhoneName', 'GetResourceName', 'GetPlayerPhone', 'GetSourceByNumber',
+    'GetNumbersByIdentifier', 'SendEmail', 'SendEmailOffline', 'SendMessage', 'SendNotification',
+    'Open', 'Close', 'Send', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications',
 }, {
+    IsAvailable = false,
     GetPhoneName = 'none',
     GetResourceName = 'none',
     GetPlayerPhone = false,
+    GetNumbersByIdentifier = function() return {} end,
     SendEmail = false,
+    SendEmailOffline = false,
+    SendMessage = false,
+    SendNotification = false,
+    Open = false,
+    Close = false,
+    Send = false,
+    SetWidgetData = false,
+    Notify = false,
+    DismissNotification = false,
+    ClearNotifications = false,
 })
 
 stub('clothing', {

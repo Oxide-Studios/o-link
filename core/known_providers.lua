@@ -125,6 +125,7 @@ OxideKnownProviders = {
     ['qs-fuelstations'] = 'fuel',
     ['qs-inventory'] = 'inventory',
     ['qs-smartphone'] = 'phone',
+    ['qs-smartphone-pro'] = 'phone',
     ['qs-vehiclekeys'] = 'vehiclekey',
     qs_dispatch = 'dispatch',
     r_notify = 'notify',

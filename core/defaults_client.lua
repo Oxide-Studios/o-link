@@ -157,11 +157,29 @@ stub('placement', {
 })
 
 stub('phone', {
-    'GetPhoneName', 'GetResourceName', 'SendEmail',
+    'IsAvailable', 'GetPhoneName', 'GetResourceName', 'SendEmail', 'IsOpen',
+    'RegisterApp', 'UnregisterApp', 'Open', 'Close', 'CloseApp', 'GetCurrentApp', 'Send', 'SetBadge',
+    'RegisterWidget', 'UnregisterWidget', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications',
 }, {
+    IsAvailable = false,
     GetPhoneName = 'none',
     GetResourceName = 'none',
     SendEmail = false,
+    IsOpen = false,
+    RegisterApp = false,
+    UnregisterApp = false,
+    Open = false,
+    Close = false,
+    CloseApp = false,
+    GetCurrentApp = function() return nil end,
+    Send = false,
+    SetBadge = false,
+    RegisterWidget = false,
+    UnregisterWidget = false,
+    SetWidgetData = false,
+    Notify = false,
+    DismissNotification = false,
+    ClearNotifications = false,
 })
 
 stub('clothing', {
