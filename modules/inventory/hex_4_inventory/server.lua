@@ -100,13 +100,21 @@ end
 
 ---@param item string
 ---@return table|nil
+local esxItems = nil
+
 local function getItemDefinition(item)
     if ESX then
         local native, label = resolveWeapon(item)
         if native then
             return { name = item, label = label, weight = 0, type = 'weapon', unique = true }
         end
-        return ESX.Items and ESX.Items[item]
+        -- ESX fills its item list from the database after it starts, so the copy in the shared
+        -- object taken when this file loaded is empty; ask ESX for the live list instead.
+        if not esxItems or esxItems[item] == nil then
+            local ok, items = pcall(ESX.GetItems)
+            if ok and type(items) == 'table' and next(items) ~= nil then esxItems = items end
+        end
+        return esxItems and esxItems[item] or (ESX.Items and ESX.Items[item])
     end
     if QBCore then
         return QBCore.Shared and QBCore.Shared.Items and QBCore.Shared.Items[item]
