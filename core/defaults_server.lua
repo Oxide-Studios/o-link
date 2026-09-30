@@ -246,7 +246,7 @@ stub('clothing', {
 
 stub('dispatch', {
     'GetResourceName',
-    'CreateAlert', 'GetActiveAlerts', 'GetAlert', 'RespondToAlert',
+    'CreateAlert', 'CivilianCall', 'GetActiveAlerts', 'GetAlert', 'RespondToAlert',
     'StopResponding', 'UpdateResponderStatus', 'CloseAlert',
     'SetCallsign', 'SetOfficerStatus', 'GetOfficerStatus', 'TriggerPanic',
 }, {

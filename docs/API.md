@@ -541,6 +541,7 @@ The oxide-dispatch adapter at [`../modules/dispatch/oxide-dispatch/(server|clien
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
 | `CreateAlert(data)` | `data: table` | `table\|nil` | Server-authored alert (911, panic, manual) — same shape as `SendAlert`. Implemented by `oxide-dispatch` and the `_default` fallback (notify + blip at `data.coords` for each job member, returns `{ recipients }`); `nil` on every other backend, so relay through a client `SendAlert` on a falsy return |
+| `CivilianCall(src, payload)` | `src: number, payload: { channel: '911'\|'311', category?, message?, anonymous?, number?, jobs? }` | `table\|false\|nil, string?` | A 911/311 call from a player's phone at the player's position. `oxide-dispatch` runs it through its civilian call pipeline (categories, zone blacklist, replies to the caller) and returns `{ alertId }`, or `false, reason` when it turns the call down (`'unavailable'` while it is not running); `_default` alerts `payload.jobs` (default police) and returns `{ recipients }`. Every other backend returns `nil`: fall back to `CreateAlert`, then a client `SendAlert` |
 | `GetActiveAlerts(jobFilter?)` | `jobFilter?: string\|string[]` | `table[]` | |
 | `GetAlert(alertId)` | `alertId: integer` | `table\|nil` | |
 | `RespondToAlert(alertId, src)` | `alertId: integer, src: number` | `boolean, string?` | |

@@ -22,6 +22,19 @@ olink._register('dispatch', {
         return ok and result or nil
     end,
 
+    ---A 911/311 call from a player's phone, through oxide-dispatch's civilian call pipeline
+    ---(categories, zone blacklist, replies to the caller).
+    ---@param src number
+    ---@param payload { channel: '911'|'311', category?: string, message?: string, anonymous?: boolean, number?: string }
+    ---@return table|false { alertId }, string|nil err
+    CivilianCall = function(src, payload)
+        if not isStarted() then return false, 'unavailable' end
+        local ok, alertId, err = pcall(function() return res:CivilianCall(src, payload) end)
+        if not ok then return false, 'unavailable' end
+        if not alertId then return false, type(err) == 'string' and err or 'rejected' end
+        return { alertId = alertId }
+    end,
+
     ---@param jobFilter? string|string[]
     ---@return table[]
     GetActiveAlerts = function(jobFilter)

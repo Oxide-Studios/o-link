@@ -69,6 +69,31 @@ olink._register('dispatch', {
             blipData  = data.blipData,
         }) }
     end,
+
+    ---A 911/311 call from a player's phone, sent to `payload.jobs` (default police) at the
+    ---caller's position. nil while a dedicated dispatch resource owns alerts.
+    ---@param src number
+    ---@param payload { channel: '911'|'311', message?: string, anonymous?: boolean, number?: string, jobs?: string[] }
+    ---@return table|nil { recipients = number }
+    CivilianCall = function(src, payload)
+        if dedicatedRunning() or type(payload) ~= 'table' then return nil end
+        local ped = GetPlayerPed(src)
+        if not ped or ped == 0 then return nil end
+        local channel = payload.channel == '311' and '311' or '911'
+        local from = (not payload.anonymous and type(payload.number) == 'string') and (' ' .. payload.number) or ''
+        local message = type(payload.message) == 'string' and payload.message ~= '' and payload.message:sub(1, 240) or channel
+        return { recipients = broadcast({
+            sprite   = channel == '911' and 480 or 459,
+            color    = channel == '911' and 1 or 3,
+            scale    = 1.0,
+            coords   = GetEntityCoords(ped),
+            message  = ('%s%s: %s'):format(channel, from, message),
+            code     = channel,
+            icon     = 'fas fa-phone',
+            jobs     = type(payload.jobs) == 'table' and payload.jobs or { 'police' },
+            time     = 30000,
+        }) }
+    end,
 })
 
 local lastAlert = {}
