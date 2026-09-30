@@ -21,14 +21,17 @@ local function NormalizeType(accountType)
     return accountType
 end
 
----Resolve a stateId or charId to the numeric charId needed by oxide-accounts
+---Resolve a stateId or charId to the numeric charId needed by oxide-accounts. A stateId is
+---tried first: one made of digits (or that Lua would read as a number, like `0X1A2B`) must never
+---be mistaken for another character's charId.
 ---@param identifier string stateId or charId
 ---@return number|nil
 local function ResolveCharId(identifier)
-    local num = tonumber(identifier)
-    if num then return num end
-    local row = MySQL.scalar.await('SELECT char_id FROM characters WHERE state_id = ? AND deleted_at IS NULL', { identifier })
-    return tonumber(row)
+    if identifier == nil then return nil end
+    local row = MySQL.scalar.await('SELECT char_id FROM characters WHERE state_id = ? AND deleted_at IS NULL', { tostring(identifier) })
+    if row then return tonumber(row) end
+    if type(identifier) == 'number' or tostring(identifier):match('^%d+$') then return tonumber(identifier) end
+    return nil
 end
 
 olink._register('money', {
