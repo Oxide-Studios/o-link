@@ -94,6 +94,13 @@ stub('weather', {
     IsReady = false,
 })
 
+stub('map', {
+    'GetConfig', 'IsMode',
+}, {
+    GetConfig = function() return { ready = false, mode = 'combined', override = 'inherit' } end,
+    IsMode = false,
+})
+
 stub('input', {
     'GetResourceName', 'Open',
 }, {
