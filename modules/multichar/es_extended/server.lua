@@ -137,6 +137,27 @@ local function discoverCascadeTables()
     return rows or {}
 end
 
+---Last saved position for a character. es_extended keeps it as a JSON blob in
+---users.position ({x, y, z, heading}); the table has no x/y/z/heading columns,
+---so that blob is the only place to read it from. Falls back to the first
+---configured default spawn when the row has none.
+---@param identifier string
+---@return table|nil { x, y, z, w }
+local function savedPosition(identifier)
+    local row = MySQL.single.await('SELECT position FROM users WHERE identifier = ?', { identifier })
+    if row and row.position then
+        local decoded = type(row.position) == 'string' and json.decode(row.position) or row.position
+        if decoded and decoded.x then
+            return { x = decoded.x, y = decoded.y, z = decoded.z, w = decoded.heading or decoded.w or 0.0 }
+        end
+    end
+    if ESX and ESX.GetConfig then
+        local spawn = ESX.GetConfig().DefaultSpawns and ESX.GetConfig().DefaultSpawns[1]
+        if spawn then return { x = spawn.x, y = spawn.y, z = spawn.z, w = spawn.heading } end
+    end
+    return nil
+end
+
 olink._register('multichar', {
     GetResourceName = function() return RESOURCE end,
 
@@ -259,13 +280,7 @@ olink._register('multichar', {
         if ESX and ESX.GetPlayerFromId then
             local okPlayer, xPlayer = pcall(function() return ESX.GetPlayerFromId(src) end)
             if okPlayer and xPlayer and xPlayer.identifier == identifier then
-                local row = MySQL.single.await(
-                    'SELECT x, y, z, heading FROM users WHERE identifier = ?',
-                    { identifier }
-                )
-                local pos
-                if row and row.x then pos = { x = row.x, y = row.y, z = row.z, w = row.heading } end
-                return { ok = true, position = pos }
+                return { ok = true, position = savedPosition(identifier) }
             end
         end
 
@@ -280,25 +295,7 @@ olink._register('multichar', {
         SetPlayerRoutingBucket(src, 0)
         TriggerEvent('esx:onPlayerJoined', src, charPrefix)
 
-        -- Position is stored as a JSON blob in `users.position` (shape:
-        -- {x, y, z, heading}). Decode and re-normalize to our slot DTO shape.
-        local row = MySQL.single.await(
-            'SELECT position FROM users WHERE identifier = ?',
-            { identifier }
-        )
-        local pos
-        if row and row.position then
-            local decoded = type(row.position) == 'string' and json.decode(row.position) or row.position
-            if decoded and decoded.x then
-                pos = { x = decoded.x, y = decoded.y, z = decoded.z, w = decoded.heading or decoded.w or 0.0 }
-            end
-        end
-        if not pos and ESX and ESX.GetConfig then
-            local spawn = ESX.GetConfig().DefaultSpawns and ESX.GetConfig().DefaultSpawns[1]
-            if spawn then pos = { x = spawn.x, y = spawn.y, z = spawn.z, w = spawn.heading } end
-        end
-
-        return { ok = true, position = pos }
+        return { ok = true, position = savedPosition(identifier) }
     end,
 
     Delete = function(src, charId)
