@@ -51,7 +51,7 @@ olink._register('phone', {
 
     ---Register an app the phone can host. `def.resource` is required: by the time the
     ---call reaches the phone the invoking resource is o-link itself.
-    ---@param def table { id, label, icon, resource, url?, query?, requires?, order?, color?, readyTimeoutMs?, description?, tagline?, category?, publisher?, version?, links?, permissions? }
+    ---@param def table { id, label, icon, resource, url?, query?, requires?, order?, color?, iconImage?, iconBackground?, readyTimeoutMs?, description?, tagline?, category?, publisher?, version?, links?, permissions? }
     ---@return boolean
     RegisterApp = function(def)
         if type(def) ~= 'table' then return false end
