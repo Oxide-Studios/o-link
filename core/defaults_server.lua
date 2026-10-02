@@ -200,7 +200,7 @@ stub('notify', {
 stub('phone', {
     'IsAvailable', 'GetPhoneName', 'GetResourceName', 'GetPlayerPhone', 'GetSourceByNumber',
     'GetNumbersByIdentifier', 'SendEmail', 'SendEmailOffline', 'SendMessage', 'SendNotification',
-    'Open', 'Close', 'Send', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications',
+    'Open', 'Close', 'Send', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications', 'AppService',
 }, {
     IsAvailable = false,
     GetPhoneName = 'none',
@@ -218,6 +218,7 @@ stub('phone', {
     Notify = false,
     DismissNotification = false,
     ClearNotifications = false,
+    AppService = function() return false, 'unsupported' end,
 })
 
 stub('clothing', {

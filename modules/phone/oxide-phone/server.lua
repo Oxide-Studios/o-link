@@ -143,6 +143,21 @@ olink._register('phone', {
     ClearNotifications = function(src, appId)
         return call(false, function() return res:ClearNotifications(src, appId) end) == true
     end,
+
+    ---A service for a hosted app's own server: accounts, media the app was given, location,
+    ---the phone's id and number, and evidence. The phone checks the calling resource owns
+    ---`appId`, so it is passed on (inside the phone the invoking resource is o-link).
+    ---@param appId string
+    ---@param method string e.g. 'account.get', 'evidence.record'
+    ---@param params table|nil
+    ---@return boolean ok, any result or reason
+    AppService = function(appId, method, params)
+        if not isStarted() then return false, 'unavailable' end
+        local caller = GetInvokingResource()
+        local ok, done, result = pcall(function() return res:AppService(appId, method, params, caller) end)
+        if not ok then return false, 'unavailable' end
+        return done == true, result
+    end,
 }, RESOURCE)
 
 olink._phone.RegisterEmailRelay(RESOURCE)

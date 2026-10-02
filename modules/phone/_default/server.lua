@@ -13,7 +13,7 @@ if not olink._hasOverride('Phone') and GetResourceState('yseries') == 'started' 
 olink._registerDefault('phone', olink._buildStub('phone', {
     'GetPlayerPhone', 'GetSourceByNumber', 'GetNumbersByIdentifier',
     'SendEmail', 'SendEmailOffline', 'SendMessage', 'SendNotification',
-    'Open', 'Close', 'Send', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications',
+    'Open', 'Close', 'Send', 'SetWidgetData', 'Notify', 'DismissNotification', 'ClearNotifications', 'AppService',
 }, {
     GetPlayerPhone = false,
     GetSourceByNumber = nil,
@@ -29,6 +29,7 @@ olink._registerDefault('phone', olink._buildStub('phone', {
     Notify = false,
     DismissNotification = false,
     ClearNotifications = false,
+    AppService = function() return false, 'unsupported' end,
 }))
 
 olink._registerDefault('phone', {

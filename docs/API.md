@@ -722,6 +722,7 @@ Functions reached through `exports['o-link']:olink()` cross the resource boundar
 | `SendMessage(src, sender, message)` | `src: number, sender: string, message: string` | `boolean` | A text from a named service. Phones that cannot text from a name deliver it as mail (`subject` = `sender`) |
 | `SendNotification(src, data)` | `src: number, data: { title, message, icon?, app? }` | `boolean` | A push notification on the phone |
 | `Open(src, appId?)`, `Close(src)`, `Send(src, appId, message)`, `SetWidgetData(src, id, data)`, `Notify(src, def)`, `DismissNotification(src, id)`, `ClearNotifications(src, appId?)` | as `olink.tablet` | as `olink.tablet` | App host, shaped like the tablet's. Implemented by `oxide-phone` only; `false` on every other provider |
+| `AppService(appId, method, params?)` | `appId: string, method: string, params?: table` | `boolean, any` | A phone service for a hosted app's own server (accounts, media the app got, location, the phone's id, evidence): `true, result` or `false, reason`. The phone checks that the calling resource declares `appId` in its manifest (o-link passes the caller on). Implemented by `oxide-phone` only; `false, 'unsupported'` elsewhere. Methods: oxide-phone's `docs/BUILDING-APPS.md` §10 |
 
 ### Client
 
