@@ -347,7 +347,7 @@ stub('needs', {
 stub('medical', {
     'GetResourceName',
     'GetRecord', 'GetBloodType', 'GetDNA', 'GetImmunity', 'GetConditions', 'GetVitals', 'HasCondition',
-    'AddCondition', 'TreatCondition', 'RemoveCondition', 'GetOfflineRecord',
+    'AddCondition', 'TreatCondition', 'RemoveCondition', 'ReportExposure', 'GetOfflineRecord',
 }, {
     GetResourceName = 'none',
     GetImmunity = 100,
@@ -356,6 +356,7 @@ stub('medical', {
     AddCondition = false,
     TreatCondition = false,
     RemoveCondition = false,
+    ReportExposure = false,
 })
 
 stub('gang', {

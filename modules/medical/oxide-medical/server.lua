@@ -98,6 +98,17 @@ olink._register('medical', {
         return ok and result == true
     end,
 
+    ---@param src number
+    ---@param hazard string an exposure the medical resource knows, e.g. 'smoke'
+    ---@param amount number dose breathed since the last report
+    ---@param data table|nil { source? }
+    ---@return boolean taken false: not handled, the caller deals the harm itself
+    ReportExposure = function(src, hazard, amount, data)
+        if not isStarted() then return false end
+        local ok, result = pcall(function() return res:ReportExposure(src, hazard, amount, data) end)
+        return ok and result == true
+    end,
+
     ---@param charId string
     ---@return table|nil { record, conditions }
     GetOfflineRecord = function(charId)

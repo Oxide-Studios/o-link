@@ -793,6 +793,14 @@ Client side additionally exposes `Get()` (reads the server-written `oxide:gang` 
 | `olink:server:gangChanged` | server | `(src, gangName\|nil)` | Player joined, left, or changed rank in a gang (`nil` = now gangless). Treat handlers as idempotent. |
 | `olink:client:gangChanged` | client | `(gangData\|nil)` | Local player's gang changed; full statebag payload |
 
+**Medical exposure (server, oxide-medical)**
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `ReportExposure(src, hazard, amount, data?)` | `src: number, hazard: string, amount: number, data: table\|nil` | `boolean` | Tell the medical resource a player breathed an environmental hazard it knows (`'smoke'`: `amount` is smoke density 0 to 1 times the seconds breathed). The medical resource decides the condition, symptoms and harm. `data = { source? }` names the reporter. `true` when it took the exposure (including a downed or exempt player it leaves alone); `false` for an unknown hazard, a bad amount, a player with no medical record, or no medical resource, so the caller deals the harm itself |
+
+Report about once a second while the player breathes the hazard. The stub returns `false`, so gate on the return value rather than `olink.supports('medical')`.
+
 **Clothing helpers (server, adapter-dependent)**
 
 Functions common across `esx_skin`, `qb-clothing`, `fivem-appearance`, `illenium-appearance`, `rcore_clothing`, `oxide-clothing`, `oxide-identity`:
