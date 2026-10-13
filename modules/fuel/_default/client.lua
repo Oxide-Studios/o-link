@@ -2,6 +2,7 @@
 -- Uses GTA native fuel level when no dedicated fuel resource is running.
 
 if not olink._guardImpl('Fuel', '_default', false) then return end
+if not olink._hasOverride('Fuel') and GetResourceState('BigDaddy-Fuel') == 'started' then return end
 if not olink._hasOverride('Fuel') and GetResourceState('bigDaddy-Fuel') == 'started' then return end
 if not olink._hasOverride('Fuel') and GetResourceState('cdn-fuel') == 'started' then return end
 if not olink._hasOverride('Fuel') and GetResourceState('esx-sna-fuel') == 'started' then return end
