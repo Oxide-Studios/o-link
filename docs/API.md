@@ -792,7 +792,7 @@ Providers:
 | `SetVisible(visible)` | `visible: boolean` | `boolean` | Hide (`false`) or show the HUD for your resource. The HUD stays hidden while any resource holds it hidden, and a hold ends when its resource stops. `false` with no HUD |
 | `IsVisible()` | | `boolean, string\|nil` | Whether the HUD is shown, and the hide reason (below) while it is not |
 | `GetReservedAreas()` | | `table` | `{ measured, screen = { w, h, pixelWidth, pixelHeight }, safeZone = { x, y, w, h }, areas = { { id, kind, x, y, w, h, resource? }, ... } }`, all in vh from the screen's top-left corner. `measured` is `true` when a HUD knows its own layout (oxide-hud) and `false` for `_default`'s estimates. `kind` is `widget`, `minimap` or `logo` (the HUD's own), `reserved` (`Config.ReservedAreas`), `estimate` (`_default`), or `panel` / `overlay` (registered panels, with their `resource`; skip your own ids) |
-| `GetTheme()` | | `table\|nil` | The server's accent colour, for panels that want to match the server's branding: `{ accent, light, dark, contrast }`, each a lowercase `'#rrggbb'` string. `nil` when the HUD has no accent set, and always from `_default` (keep your own colours then). See [Theme](#theme) |
+| `GetTheme()` | | `table\|nil` | The server's accent colour, for panels that want to match the server's branding: `{ accent, light, dark, contrast, locked }`, the colours as lowercase `'#rrggbb'` strings and `locked` a boolean. `nil` when the HUD has no accent set, and always from `_default` (keep your own colours then). See [Theme](#theme) |
 
 A **position** is `{ id, anchor, x, y, w, h, left, top, moved }`: the anchor and offsets to draw the panel at, its size, its top-left corner (vh), and `moved = true` when the player placed it. The anchor is always the one you registered. The first position `RegisterWidget` returns can be refined a moment later by `layoutChanged`, once oxide-hud has measured its layout.
 
@@ -861,6 +861,7 @@ A server sets one accent colour in its HUD (oxide-hud: `Config.Theme.accent`); `
 | `light` | `accent` toward white, at least 4.5:1 against `#0f1113`: accent-coloured text and highlights |
 | `dark` | `accent` toward black: gradient ends, deep fills, pressed states |
 | `contrast` | `'#ffffff'` or `'#0f1113'`: text and icons drawn on a solid `accent` fill |
+| `locked` | `true` when the server does not let players replace the accent with colours of their own (oxide-hud: `Config.Theme.lockAccent`). If your panel offers player colours, ignore them where the accent would show |
 
 Only replace your accent. Colours that carry meaning (good, warning and bad states; notification types) keep their colours. Read the theme where you register (at your own start and on `olink:client:hud:ready`) and on `themeChanged`; give server owners a config switch to keep your own colours. `GetTheme` is new in this version, so on an older o-link both `olink.hud` and `olink.hud.GetTheme` can be `nil`; the `hud()` helper above returns `nil` for both:
 
