@@ -37,6 +37,7 @@ Config.Overrides = {
     -- Needs             = 'oxide-needs',
     -- Gang              = 'oxide-core',
     -- Tablet            = 'oxide-tablet',
+    -- Hud               = 'oxide-hud',
 }
 
 Config.Debug = true

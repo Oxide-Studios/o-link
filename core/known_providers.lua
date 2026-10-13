@@ -79,6 +79,7 @@ OxideKnownProviders = {
     ['oxide-dispatch'] = 'dispatch',
     ['oxide-gangs'] = 'gang',
     ['oxide-helptext'] = 'helptext',
+    ['oxide-hud'] = 'hud',
     ['oxide-identity'] = 'clothing',
     ['oxide-inventory'] = 'inventory',
     ['oxide-logger'] = 'logger',
