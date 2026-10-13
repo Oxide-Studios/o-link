@@ -13,7 +13,7 @@ It lists implementation folders that exist today. It does not guarantee every im
 | `character` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
 | `multichar` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
 | `job` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
-| `money` | server | `es_extended`, `oxide-accounts`, `qb-core`, `qbx_core` |
+| `money` | server + client | `es_extended`, `oxide-accounts`, `qb-core`, `qbx_core` (client also `_default`) |
 | `license` | server | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
 | `inventory` | server + client | `ak47_qb_inventory`, `codem-inventory`, `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `oxide-inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
 | `vehicles` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
@@ -96,7 +96,9 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | `vehicleOwnership` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
 | `death` | server + client | `_default`, `es_extended`, `oxide-death`, `qb-core`, `qbx_core` (all emit `olink:*:playerDied/Downed/Revived/Respawned/playerDeathStateChanged` — see API.md for per-provider caveats; client `SetSuppressed` is honoured by `oxide-death` only, stub `false` elsewhere) |
 | `medical` | server + client | `oxide-medical` |
-| `needs` | server | `es_extended`, `oxide-needs`, `qb-core`, `qbx_core` |
+| `needs` | server + client | `es_extended`, `oxide-needs`, `qb-core`, `qbx_core` (client also `_default`) |
+| `seatbelt` | client | `_default`, `oxide-vehicles`, `qb-smallresources`, `qbx_seatbelt` |
+| `voice` | client | `_default` (built-in voice), `pma-voice`, `saltychat` |
 | `gang` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
 
 ## Economy, Services, and World

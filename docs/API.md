@@ -145,8 +145,9 @@ The client adapter bridges the framework's native "show character selection" tri
 }
 ```
 
-## Module: money (server only)
+## Module: money (server + client)
 
+### Server
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
 | `Add(src, accountType, amount, reason?)` | `src: number, accountType: string, amount: number, reason?: string` | `boolean` | Add money to an online player |
@@ -155,6 +156,42 @@ The client adapter bridges the framework's native "show character selection" tri
 | `AddOffline(identifier, accountType, amount, reason?)` | `identifier: string, accountType: string, amount: number, reason?: string` | `boolean` | Add money offline. `reason` labels the transaction on backends that keep a ledger; frameworks that write the balance directly ignore it |
 | `RemoveOffline(identifier, accountType, amount, reason?)` | `identifier: string, accountType: string, amount: number, reason?: string` | `boolean` | Remove money offline. Same `reason` handling as `AddOffline` |
 | `GetBalanceOffline(identifier, accountType)` | `identifier: string, accountType: string` | `number` | Offline balance |
+
+### Client
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `GetResourceName()` | | `string` | Active provider: `'oxide-accounts'`, `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no framework; every balance reads `0`) |
+| `GetBalance(accountType)` | `accountType: string` | `number` | Local player's balance. `'cash'` and `'bank'` work on every provider (`'money'` is accepted for cash); other names are the framework's own accounts (`'crypto'`, `'black_money'`). `0` when unknown |
+
+| Event | Side | Args | Description |
+|-------|------|------|-------------|
+| `olink:client:moneyChanged` | client | `(accountType, balance)` | A local balance moved. `accountType` is `'cash'` or `'bank'` (ESX `money` is reported as `'cash'`), or the framework's name for any other account it reports. Only accounts that changed fire; the first update after a character loads reports every account |
+
+Sources: Oxide reads the `oxide:cash` / `oxide:bank` player bags, QB and QBX read `PlayerData.money` (QB `QBCore:Player:UpdatePlayerDataField` and `SetPlayerData`, QBX `SetPlayerData`), ESX reads `PlayerData.accounts` (`esx:setAccountMoney`, `esx:playerLoaded`).
+
+## Module: needs (server + client)
+
+Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stress.
+
+### Server
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `GetNeed(src, needType)` | `src: number, needType: 'hunger'\|'thirst'\|'stress'` | `number\|nil` | Current value |
+| `SetNeed(src, needType, value)` | `src: number, needType: string, value: number` | `boolean` | Set a need (clamped 0-100) |
+| `ModifyNeed(src, needType, amount)` | `src: number, needType: string, amount: number` | `boolean` | Add or subtract from a need |
+
+### Client
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `GetResourceName()` | | `string` | Active provider: `'oxide-needs'`, `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no needs system) |
+| `Get(needType)` | `needType: 'hunger'\|'thirst'\|'stress'` | `number\|nil` | Local player's need. `nil` when the provider doesn't track it (ESX stress, `_default`) or hasn't reported yet (ESX before the first `esx_status` tick) |
+| `GetAll()` | | `{ hunger?, thirst?, stress? }` | All three; untracked needs are absent |
+
+| Event | Side | Args | Description |
+|-------|------|------|-------------|
+| `olink:client:needsChanged` | client | `(needs)` | Any need moved. `needs` is the full `{ hunger?, thirst?, stress? }` snapshot after the change |
+
+Sources: Oxide reads the `oxide:metadata` bag, QB reads `PlayerData.metadata` (`hud:client:UpdateNeeds` / `UpdateStress`, `QBCore:Player:UpdatePlayerDataField`, `SetPlayerData`), QBX reads the `hunger` / `thirst` / `stress` player bags, ESX normalizes `esx_status:onTick` (about once a second).
 
 ## Module: license (server only)
 
@@ -461,6 +498,53 @@ Ox-style aliases are available under `olink.radial`: `RegisterRadial`,
 | `GiveKeys(vehicle, plate?)` | | `nil` | Alias for `Give` |
 | `RemoveKeys(vehicle, plate?)` | | `nil` | Alias for `Remove` |
 
+## Module: seatbelt (client only)
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `GetResourceName()` | | `string` | Active provider: `'oxide-vehicles'`, `'qbx_seatbelt'`, `'qb-smallresources'`, or `'_default'` (no seatbelt system; always off) |
+| `IsOn()` | | `boolean` | Local player's seatbelt is fastened |
+
+| Event | Side | Args | Description |
+|-------|------|------|-------------|
+| `olink:client:seatbeltChanged` | client | `(isOn)` | The local seatbelt was fastened or released, including the release when the player leaves the vehicle |
+
+Sources: `oxide-vehicles` `IsSeatbeltOn` export (it has no event, so the adapter polls every 250 ms while the player is in a vehicle), the `seatbelt` player bag set by `qbx_seatbelt` (what `qbx_hud` reads), and `qb-smallresources` (`HasSeatbeltOn` export, `seatbelt:client:ToggleSeatbelt`). An installed `oxide-vehicles` owns the namespace, even before it starts; pick another with `Config.Overrides.Seatbelt`.
+
+## Module: voice (client only)
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `GetResourceName()` | | `string` | Active provider: `'pma-voice'`, `'saltychat'`, or `'_default'` (FiveM's built-in voice chat) |
+| `GetState()` | | `VoiceState` | Local player's voice state, read at call time. Poll it; there is no change event |
+
+**VoiceState shape**
+
+```lua
+{
+    connected = boolean,      -- the voice system is connected and usable
+    talking   = boolean,
+    range = {
+        index    = number|nil, -- 1-based proximity mode
+        label    = string|nil, -- the provider's name for the mode (pma-voice: 'Whisper', 'Normal', 'Shouting')
+        distance = number|nil, -- metres
+        count    = number|nil, -- number of modes, when the provider reports it
+    },
+    radio = {
+        active  = boolean,          -- transmitting on the radio right now
+        channel = number|string|nil, -- current radio channel; nil when off the radio
+    },
+}
+```
+
+| Provider | `connected` | `talking` | `range` | `radio` |
+|----------|-------------|-----------|---------|---------|
+| `pma-voice` | `MumbleIsConnected` | `MumbleIsPlayerTalking` | `proximity` bag: `index`, `label` (`mode`), `distance`; `voice_defaultVoiceMode` until set | `radioChannel` bag (`0` = none), `radioActive` bag |
+| `saltychat` | `SaltyChat_PluginStateChanged` = in game (assumed until the first event) | `SaltyChat_TalkStateChanged` (needs `RequestTalkStates`) | `GetVoiceRange` export for `distance`; `index` and `count` from `SaltyChat_VoiceRangeChanged`; no labels | `GetRadioChannel(true)` export, transmit from `SaltyChat_RadioTrafficStateChanged` |
+| `_default` | `MumbleIsConnected` | `NetworkIsPlayerTalking` | one mode, `distance` from `MumbleGetTalkerProximity` | never |
+
+`pma-voice` and `saltychat` register while installed and read their state at call time, so a voice resource that starts after o-link (or after its consumer) is picked up without a restart.
+
 ## Module: entity (server + client)
 
 ### Server
@@ -760,7 +844,6 @@ These namespaces are present in the current implementation and load through the 
 | `vehicleOwnership` | server | 4 |
 | `death` | server + client | 4 |
 | `medical` | server + client | 1 |
-| `needs` | server | 4 |
 | `gang` | server + client | 12 |
 
 **Gang helpers (server)**

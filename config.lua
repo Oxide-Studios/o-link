@@ -35,6 +35,8 @@ Config.Overrides = {
     -- Skills            = '_default',
     -- Death             = 'oxide-death',
     -- Needs             = 'oxide-needs',
+    -- Seatbelt          = 'oxide-vehicles',
+    -- Voice             = 'pma-voice',
     -- Gang              = 'oxide-core',
     -- Tablet            = 'oxide-tablet',
 }
