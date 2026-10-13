@@ -65,7 +65,7 @@ end
 
 ## Circular Provider/Consumer Pattern
 
-A "circular" resource declares `o-link` in its `dependencies { ... }` AND provides an o-link namespace (today: `oxide-vehicles`, `oxide-dispatch`, `oxide-banking`, `oxide-tablet`).
+A "circular" resource declares `o-link` in its `dependencies { ... }` AND provides an o-link namespace (today: `oxide-vehicles`, `oxide-dispatch`, `oxide-banking`, `oxide-tablet`, `oxide-hud`).
 
 ### The cross-VM snapshot trap
 
@@ -178,6 +178,7 @@ o-link/
     |-- gang/
     |-- logger/
     |-- tablet/
+    |-- hud/
     `-- jobcount/
 ```
 

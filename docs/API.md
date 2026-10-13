@@ -684,6 +684,83 @@ Apps post notifications with `Notify`; the tablet draws them, the app never does
 
 The tile badge is the larger of `SetBadge` and the app's pending notifications, so `SetBadge(app, 0)` does not hide them: call `ClearNotifications(app)` once the app has handled them itself. Register the app on `olink:client:tablet:ready` before notifying; a notification for an app the tablet does not know is dropped. Only `message`, `title` and the icon reach the screen; `data` stays in Lua until the tap.
 
+## Module: hud (client only)
+
+Lets a resource place its on-screen panels around the server's HUD, hide with it, and stay out of its way, with one set of calls that works whether or not a HUD is installed. A **panel** is any part of your own NUI drawn over the game: a notification area, a stage header, a timer card.
+
+Every size and offset is in **vh**, percent of the screen height, so a panel keeps its place at every resolution (the screen is `100 * width / height` vh wide and 100 vh tall; `3` is 32 px at 1080p and 43 px at 1440p). A panel is pinned at one of nine **anchors**: `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right`. Offsets are measured inward from that edge, and from the centre line on a centred axis (positive is right / down), so a `top-right` panel at `{ x = 3, y = 4 }` is drawn with CSS `right: 3vh; top: 4vh`.
+
+Providers:
+
+- `oxide-hud`: the HUD measures its own widgets and places every panel clear of them, of its minimap and logo, of the zones the server reserves in its `Config.ReservedAreas`, and of panels placed before it. Players can drag panels in the HUD editor (`/hud`), separately on foot and in a vehicle. Circular adapter: while oxide-hud is installed but not running, every call answers as `_default`.
+- `_default`: no HUD. A panel registered with an `offset` sits exactly there; one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. There is nothing to hide: `SetVisible` returns `false` and `IsVisible` is always `true`.
+
+### Client
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `GetResourceName()` | | `string` | `'oxide-hud'`, `'_default'`, or `'none'` from the stubs |
+| `RegisterWidget(def)` | `def: table` | `position\|false` | Register a panel. `def = { id, label, anchor? = 'top-left', size? = { w, h } (vh, default 20 x 10), offset? = { x, y } (vh), overlay? = false }`. `id` is 1 to 64 characters of `A-Z a-z 0-9 _ - . :`; prefix it with your resource name. `label` is shown on the panel's placeholder in the HUD editor. `offset` is where you draw the panel today: with no HUD it is used as given, and the HUD starts there and moves the panel only as far as it must; leave it out to be placed clear of everything. `overlay = true` marks a short-lived panel (a prompt, a progress bar, a downed card): it keeps clear of the HUD but not of other panels, and other panels do not move for it. Registering the same `id` again updates it. The panel is removed when your resource stops. `false` when `def` is invalid |
+| `UnregisterWidget(id)` | `id: string` | `boolean` | |
+| `GetWidgetPosition(id)` | `id: string` | `position\|nil` | |
+| `SetVisible(visible)` | `visible: boolean` | `boolean` | Hide (`false`) or show the HUD for your resource. The HUD stays hidden while any resource holds it hidden, and a hold ends when its resource stops. `false` with no HUD |
+| `IsVisible()` | | `boolean, string\|nil` | Whether the HUD is shown, and the hide reason (below) while it is not |
+| `GetReservedAreas()` | | `table` | `{ measured, screen = { w, h, pixelWidth, pixelHeight }, safeZone = { x, y, w, h }, areas = { { id, kind, x, y, w, h, resource? }, ... } }`, all in vh from the screen's top-left corner. `measured` is `true` when a HUD knows its own layout (oxide-hud) and `false` for `_default`'s estimates. `kind` is `widget`, `minimap` or `logo` (the HUD's own), `reserved` (`Config.ReservedAreas`), `estimate` (`_default`), or `panel` / `overlay` (registered panels, with their `resource`; skip your own ids) |
+
+A **position** is `{ id, anchor, x, y, w, h, left, top, moved }`: the anchor and offsets to draw the panel at, its size, its top-left corner (vh), and `moved = true` when the player placed it. The anchor is always the one you registered. The first position `RegisterWidget` returns can be refined a moment later by `layoutChanged`, once oxide-hud has measured its layout.
+
+### Client-side events (local `TriggerEvent`; subscribe with `AddEventHandler`)
+
+Fired by the HUD resource, never by `_default`.
+
+| Event | Args | Description |
+|-------|------|-------------|
+| `olink:client:hud:ready` | | The HUD is up for the character: register (again) here as well as at your own start, which covers the HUD starting after you and restarting |
+| `olink:client:hud:layoutChanged` | `(positions)` | Something moved: a drag in the editor, an on-foot/in-vehicle switch, a HUD widget change, a resolution change, another panel. `positions` maps every registered `id` to its position; read your own ids. Call `GetReservedAreas()` again if you use it |
+| `olink:client:hud:visibilityChanged` | `(visible, reason)` | The HUD was hidden or shown. `reason` while hidden, the first that applies: `unloaded` (character select, not loaded yet), `external` (a resource called `SetVisible(false)`, such as a cinematic), `pause` (pause menu), `dead` (dead or downed), `phone` (phone open), `focus` (any NUI has focus). `nil` when visible. Follow only the reasons that suit your panel: a downed card must not hide for `dead`, and a minigame HUD whose own menu takes focus must not hide for `focus` |
+| `olink:client:hud:editMode` | `(enabled)` | The HUD editor opened or closed: show a still preview of your panel so the player can see what they are placing |
+
+### Pattern
+
+```lua
+local MY_ID = 'my-resource:status'
+
+local function hud(fn, ...)
+    local call = olink.hud and olink.hud[fn]   -- nil on an o-link without the hud namespace
+    if not call then return nil end
+    local ok, result = pcall(call, ...)
+    if ok then return result end
+end
+
+local function place(pos)
+    if type(pos) ~= 'table' then return end
+    SendNUIMessage({ action = 'setPosition', data = { anchor = pos.anchor, x = pos.x, y = pos.y } })
+end
+
+local function register()
+    place(hud('RegisterWidget', {
+        id = MY_ID,
+        label = 'My status card',
+        anchor = 'top-right',
+        size = { w = 24, h = 12 },
+        offset = { x = 3, y = 4 },   -- where the page draws it without a HUD
+    }))
+end
+
+CreateThread(function() Wait(1000) register() end)
+AddEventHandler('olink:client:hud:ready', register)
+AddEventHandler('olink:client:hud:layoutChanged', function(positions) place(positions[MY_ID]) end)
+AddEventHandler('olink:client:hud:visibilityChanged', function(visible, reason)
+    SendNUIMessage({ action = 'setHidden', data = not visible and (reason == 'pause' or reason == 'external') })
+end)
+```
+
+In the page, pin the panel's root with the anchor: `right: <x>vh; top: <y>vh` for `top-right`, `left` and `bottom` for the other edges, and `left: calc(50% + <x>vh)` with `translateX(-50%)` on a centred axis.
+
+Functions reach your resource as callable tables, so check the member and `pcall` it as above; on an o-link without the hud namespace `olink.hud` is `nil` and the panel stays where your page draws it. To keep a panel exactly where it is today when no HUD measures its layout, apply positions only when `GetReservedAreas().measured` is true (`_default` returns your `offset` unchanged anyway, but fires no events). Resources that start before o-link (UI providers such as a notification or progress bar resource) look the namespace up at call time: `GetResourceState('o-link') == 'started'`, then `exports['o-link']:olink().hud`.
+
+Reference consumers: `oxide-fire` (`client/modules/hudlayout.lua`, falling back to its `Config.HudLayout`), `oxide-ems` (overlays), `oxide-notify` (a resource that starts before o-link). oxide-hud's older exports (`RegisterWidget`, `UnregisterWidget`, `GetWidgetPosition` in pixels, `SetVisible`) and events (`oxide:hud:ready`, `oxide:hud:widgetUpdate`, `oxide:hud:editMode`) still work for one release; use `olink.hud` instead.
+
 ## Module: phone (server + client)
 
 Talks to whichever phone the server runs: `gksphone`, `lb-phone`, `okokPhone`, `oxide-phone`, `qb-phone`, `qs-smartphone` (Quasar V3, with the older Lite build as a fallback), `qs-smartphone-pro` or `yseries`. With no phone installed the `_default` adapter answers every call with its default and warns once per function. Not every phone supports every function; see the phone row in [SUPPORT-MATRIX.md](SUPPORT-MATRIX.md).
