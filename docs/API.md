@@ -779,7 +779,7 @@ Every size and offset is in **vh**, percent of the screen height, so a panel kee
 Providers:
 
 - `oxide-hud`: the HUD measures its own widgets and places every panel clear of them, of its minimap and logo, of the zones the server reserves in its `Config.ReservedAreas`, and of panels placed before it. Players can drag panels in the HUD editor (`/hud`), separately on foot and in a vehicle. Circular adapter: while oxide-hud is installed but not running, every call answers as `_default`.
-- `_default`: no HUD. A panel registered with an `offset` sits exactly there; one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. There is nothing to hide: `SetVisible` returns `false` and `IsVisible` is always `true`.
+- `_default`: no HUD. A panel registered with an `offset` sits exactly there; one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. There is nothing to hide: `SetVisible` returns `false` and `IsVisible` is always `true`. There is no server accent: `GetTheme` returns `nil`.
 
 ### Client
 
@@ -792,6 +792,7 @@ Providers:
 | `SetVisible(visible)` | `visible: boolean` | `boolean` | Hide (`false`) or show the HUD for your resource. The HUD stays hidden while any resource holds it hidden, and a hold ends when its resource stops. `false` with no HUD |
 | `IsVisible()` | | `boolean, string\|nil` | Whether the HUD is shown, and the hide reason (below) while it is not |
 | `GetReservedAreas()` | | `table` | `{ measured, screen = { w, h, pixelWidth, pixelHeight }, safeZone = { x, y, w, h }, areas = { { id, kind, x, y, w, h, resource? }, ... } }`, all in vh from the screen's top-left corner. `measured` is `true` when a HUD knows its own layout (oxide-hud) and `false` for `_default`'s estimates. `kind` is `widget`, `minimap` or `logo` (the HUD's own), `reserved` (`Config.ReservedAreas`), `estimate` (`_default`), or `panel` / `overlay` (registered panels, with their `resource`; skip your own ids) |
+| `GetTheme()` | | `table\|nil` | The server's accent colour, for panels that want to match the server's branding: `{ accent, light, dark, contrast }`, each a lowercase `'#rrggbb'` string. `nil` when the HUD has no accent set, and always from `_default` (keep your own colours then). See [Theme](#theme) |
 
 A **position** is `{ id, anchor, x, y, w, h, left, top, moved }`: the anchor and offsets to draw the panel at, its size, its top-left corner (vh), and `moved = true` when the player placed it. The anchor is always the one you registered. The first position `RegisterWidget` returns can be refined a moment later by `layoutChanged`, once oxide-hud has measured its layout.
 
@@ -805,6 +806,7 @@ Fired by the HUD resource, never by `_default`.
 | `olink:client:hud:layoutChanged` | `(positions)` | Something moved: a drag in the editor, an on-foot/in-vehicle switch, a HUD widget change, a resolution change, another panel. `positions` maps every registered `id` to its position; read your own ids. Call `GetReservedAreas()` again if you use it |
 | `olink:client:hud:visibilityChanged` | `(visible, reason)` | The HUD was hidden or shown. `reason` while hidden, the first that applies: `unloaded` (character select, not loaded yet), `external` (a resource called `SetVisible(false)`, such as a cinematic), `pause` (pause menu), `dead` (dead or downed), `phone` (phone open), `focus` (any NUI has focus). `nil` when visible. Follow only the reasons that suit your panel: a downed card must not hide for `dead`, and a minigame HUD whose own menu takes focus must not hide for `focus` |
 | `olink:client:hud:editMode` | `(enabled)` | The HUD editor opened or closed: show a still preview of your panel so the player can see what they are placing |
+| `olink:client:hud:themeChanged` | `(theme)` | The server accent appeared or went away: fired with the theme when the HUD starts and with `nil` when it stops, only when the HUD has an accent set. `theme` is shaped like `GetTheme()` |
 
 ### Pattern
 
@@ -848,6 +850,41 @@ AddEventHandler('olink:client:hud:visibilityChanged', follow)
 In the page, pin the panel's root with the anchor: `right: <x>vh; top: <y>vh` for `top-right`, `left` and `bottom` for the other edges, and `left: calc(50% + <x>vh)` with `translateX(-50%)` on a centred axis.
 
 Functions reach your resource as callable tables, so check the member and `pcall` it as above; on an o-link without the hud namespace `olink.hud` is `nil` and the panel stays where your page draws it. To keep a panel exactly where it is today when no HUD measures its layout, apply positions only when `GetReservedAreas().measured` is true (`_default` returns your `offset` unchanged anyway, but fires no events). Resources that start before o-link (UI providers such as a notification or progress bar resource) look the namespace up at call time: `GetResourceState('o-link') == 'started'`, then `exports['o-link']:olink().hud`.
+
+### Theme
+
+A server sets one accent colour in its HUD (oxide-hud: `Config.Theme.accent`); `GetTheme()` returns it with the shades derived from it, so panels can match the server's branding:
+
+| Field | Use |
+|-------|-----|
+| `accent` | Where your panel uses its own accent today: bars, fills, borders, icons, glows. A colour too dark to read on a dark panel is already lightened just enough (3:1 against `#0f1113`) |
+| `light` | `accent` toward white, at least 4.5:1 against `#0f1113`: accent-coloured text and highlights |
+| `dark` | `accent` toward black: gradient ends, deep fills, pressed states |
+| `contrast` | `'#ffffff'` or `'#0f1113'`: text and icons drawn on a solid `accent` fill |
+
+Only replace your accent. Colours that carry meaning (good, warning and bad states; notification types) keep their colours. Read the theme where you register (at your own start and on `olink:client:hud:ready`) and on `themeChanged`; give server owners a config switch to keep your own colours. `GetTheme` is new in this version, so on an older o-link both `olink.hud` and `olink.hud.GetTheme` can be `nil`; the `hud()` helper above returns `nil` for both:
+
+```lua
+local HEX = '^#%x%x%x%x%x%x$'
+
+local function validTheme(theme)
+    if type(theme) ~= 'table' then return nil end
+    for _, key in ipairs({ 'accent', 'light', 'dark', 'contrast' }) do
+        if type(theme[key]) ~= 'string' or not theme[key]:match(HEX) then return nil end
+    end
+    return theme
+end
+
+local function applyTheme(theme)
+    -- nil puts your own colours back.
+    SendNUIMessage({ action = 'setTheme', data = Config.UseHudAccent ~= false and validTheme(theme) or false })
+end
+
+AddEventHandler('olink:client:hud:themeChanged', applyTheme)
+-- and in register(): applyTheme(hud('GetTheme'))
+```
+
+In the page, override your own accent CSS variables with the theme's values (`document.documentElement.style.setProperty('--my-accent', theme.accent)`) and remove them (`removeProperty`) when it is `false`, so your colours come back unchanged.
 
 Reference consumers: `oxide-fire` (`client/modules/hudlayout.lua`, falling back to its `Config.HudLayout`), `oxide-ems` (overlays), `oxide-notify` (a resource that starts before o-link). oxide-hud's older exports (`RegisterWidget`, `UnregisterWidget`, `GetWidgetPosition` in pixels, `SetVisible`) and events (`oxide:hud:ready`, `oxide:hud:widgetUpdate`, `oxide:hud:editMode`) still work for one release; use `olink.hud` instead.
 

@@ -343,7 +343,7 @@ stub('tablet', {
 stub('hud', {
     'GetResourceName',
     'RegisterWidget', 'UnregisterWidget', 'GetWidgetPosition',
-    'SetVisible', 'IsVisible', 'GetReservedAreas',
+    'SetVisible', 'IsVisible', 'GetReservedAreas', 'GetTheme',
 }, {
     GetResourceName = 'none',
     RegisterWidget = false,

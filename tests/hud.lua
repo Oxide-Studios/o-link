@@ -1,6 +1,6 @@
 -- Isolated tests for the hud namespace: the screen maths, the `_default` provider (panels
--- placed clear of the estimated corner HUDs and the minimap, inside the safe zone), the
--- oxide-hud adapter at call time (running, installed but stopped, failing exports) and
+-- placed clear of the estimated corner HUDs and the minimap, inside the safe zone, no theme),
+-- the oxide-hud adapter at call time (running, installed but stopped, failing exports) and
 -- provider selection with overrides.
 local rawprint = print
 local output, states, stopHandlers, calls = {}, {}, {}, {}
@@ -143,6 +143,7 @@ Near(right.y, 65, 'the top-right estimate and the fixed fire panel are both clea
 assert(olink.hud.SetVisible(false) == false, 'nothing to hide')
 local visible, reason = olink.hud.IsVisible()
 assert(visible == true and reason == nil, 'always visible')
+assert(olink.hud.GetTheme() == nil, 'no server accent without a HUD')
 
 local areas = olink.hud.GetReservedAreas()
 assert(areas.measured == false, 'estimates are not measured')
@@ -201,6 +202,7 @@ local fb = olink.hud.RegisterWidget({ id = 'p', label = 'P', anchor = 'top-right
 assert(fb and fb.x == 3 and fb.y == 4, 'fallback registration')
 assert(olink.hud.GetReservedAreas().measured == false, 'fallback areas')
 assert(olink.hud.SetVisible(false) == false and olink.hud.IsVisible() == true, 'fallback visibility')
+assert(olink.hud.GetTheme() == nil, 'fallback theme')
 assert(#calls == 0, 'no export is called while oxide-hud is stopped')
 
 -- oxide-hud running.
@@ -213,6 +215,7 @@ hudExports = {
     SetHiddenBy = function(owner, value) hidden = { owner, value } return true end,
     GetVisibility = function() return { visible = false, reason = 'pause' } end,
     GetReservedAreas = function() return { measured = true, areas = { { id = 'hud:w_1' } } } end,
+    GetTheme = function() return { accent = '#724cab', light = '#9c82c4', dark = '#4a316f', contrast = '#ffffff' } end,
 }
 assert(olink.hud.GetResourceName() == 'oxide-hud', 'name while running')
 invoker = 'oxide-fire'
@@ -227,13 +230,21 @@ assert(hidden[2] == false, 'SetVisible(true) releases it')
 local v, r = olink.hud.IsVisible()
 assert(v == false and r == 'pause', 'visibility and reason')
 assert(olink.hud.GetReservedAreas().measured == true, 'areas from the HUD')
+local theme = olink.hud.GetTheme()
+assert(theme and theme.accent == '#724cab' and theme.contrast == '#ffffff', 'theme from the HUD')
+hudExports.GetTheme = function() return nil end
+assert(olink.hud.GetTheme() == nil, 'no theme when the HUD has none')
 
 hudExports.RegisterPanel = function() error('boom') end
 hudExports.GetReservedAreas = function() return 'nope' end
 hudExports.GetVisibility = function() error('boom') end
+hudExports.GetTheme = function() error('boom') end
 assert(olink.hud.RegisterWidget(def) == false, 'a failing export registers nothing')
 assert(olink.hud.GetReservedAreas().measured == false, 'a bad answer falls back to the estimates')
 assert(olink.hud.IsVisible() == true, 'a failing export reads as visible')
+assert(olink.hud.GetTheme() == nil, 'a failing export has no theme')
+hudExports.GetTheme = function() return '#724cab' end
+assert(olink.hud.GetTheme() == nil, 'a theme that is not a table is ignored')
 invoker = 'consumer'
 
 -- Overrides.
@@ -244,6 +255,7 @@ Load({}, { Hud = 'oxide-hud' })
 assert(Provider() == nil and olink.hud.GetResourceName() == 'none', 'forced oxide-hud while missing leaves the stubs')
 assert(olink.hud.RegisterWidget({ id = 'x', label = 'x' }) == false and olink.hud.IsVisible() == true, 'stub defaults')
 assert(type(olink.hud.GetReservedAreas().areas) == 'table', 'stub areas')
+assert(olink.hud.GetTheme() == nil, 'stub theme')
 local stubbed = {}
 for name in pairs(olink.hud) do stubbed[name] = true end
 

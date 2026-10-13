@@ -85,4 +85,12 @@ olink._register('hud', {
         if type(result) == 'table' then return result end
         return default('GetReservedAreas', { measured = false, areas = {} })
     end,
+
+    ---The server's accent colour and the shades derived from it, or nil when none is set.
+    ---@return table|nil { accent, light, dark, contrast } as '#rrggbb'
+    GetTheme = function()
+        if not isStarted() then return default('GetTheme', nil) end
+        local result = call(function() return res:GetTheme() end)
+        return type(result) == 'table' and result or nil
+    end,
 }, RESOURCE)

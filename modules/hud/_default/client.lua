@@ -1,7 +1,7 @@
 -- Default HUD (client): no HUD resource hosts panels. A panel sits where its resource asks;
 -- one registered without an offset is placed clear of the areas a typical server HUD uses
 -- (both top corners and the minimap), inside the GTA safe zone. There is no HUD to hide, so
--- SetVisible returns false and IsVisible stays true.
+-- SetVisible returns false and IsVisible stays true, and no server accent, so GetTheme is nil.
 
 local Hud = olink._hud
 
@@ -123,6 +123,11 @@ local Default = {
             areas[#areas + 1] = { id = id, kind = panels[id].overlay and 'overlay' or 'panel', resource = panels[id].resource, x = pos.left, y = pos.top, w = pos.w, h = pos.h }
         end
         return { measured = false, screen = screen, safeZone = safe, areas = areas }
+    end,
+
+    ---@return nil
+    GetTheme = function()
+        return nil
     end,
 }
 
