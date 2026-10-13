@@ -778,15 +778,15 @@ Every size and offset is in **vh**, percent of the screen height, so a panel kee
 
 Providers:
 
-- `oxide-hud`: the HUD measures its own widgets and places every panel clear of them, of its minimap and logo, of the zones the server reserves in its `Config.ReservedAreas`, and of panels placed before it. Players can drag panels in the HUD editor (`/hud`), separately on foot and in a vehicle. Circular adapter: while oxide-hud is installed but not running, every call answers as `_default`.
-- `_default`: no HUD. A panel registered with an `offset` sits exactly there; one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. There is nothing to hide: `SetVisible` returns `false` and `IsVisible` is always `true`. There is no server accent: `GetTheme` returns `nil`.
+- `oxide-hud`: the HUD measures its own widgets and places every panel clear of them, of its minimap and logo, of the zones the server reserves in its `Config.ReservedAreas`, and of panels placed before it. Players can drag panels in the HUD editor (`/hud`), separately on foot and in a vehicle, hide them while editing, and switch them off in game. Circular adapter: while oxide-hud is installed but not running, every call answers as `_default`.
+- `_default`: no HUD. A panel registered with an `offset` sits exactly there; one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. `essential` and `shareSpot` are accepted and ignored. There is nothing to hide: `SetVisible` returns `false`, `IsVisible` is always `true`, and positions never carry `hidden`. There is no server accent: `GetTheme` returns `nil`.
 
 ### Client
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
 | `GetResourceName()` | | `string` | `'oxide-hud'`, `'_default'`, or `'none'` from the stubs |
-| `RegisterWidget(def)` | `def: table` | `position\|false` | Register a panel. `def = { id, label, anchor? = 'top-left', size? = { w, h } (vh, default 20 x 10), offset? = { x, y } (vh), overlay? = false }`. `id` is 1 to 64 characters of `A-Z a-z 0-9 _ - . :`; prefix it with your resource name. `label` is shown on the panel's placeholder in the HUD editor. `offset` is where you draw the panel today: with no HUD it is used as given, and the HUD starts there and moves the panel only as far as it must; leave it out to be placed clear of everything. `overlay = true` marks a short-lived panel (a prompt, a progress bar, a downed card): it keeps clear of the HUD but not of other panels, and other panels do not move for it. Registering the same `id` again updates it. The panel is removed when your resource stops. `false` when `def` is invalid |
+| `RegisterWidget(def)` | `def: table` | `position\|false` | Register a panel. `def = { id, label, anchor? = 'top-left', size? = { w, h } (vh, default 20 x 10), offset? = { x, y } (vh), overlay? = false, essential? = false, shareSpot? }`. `id` is 1 to 64 characters of `A-Z a-z 0-9 _ - . :`; prefix it with your resource name. `label` is shown on the panel's placeholder in the HUD editor. `offset` is where you draw the panel today: with no HUD it is used as given, and the HUD starts there and moves the panel only as far as it must; leave it out to be placed clear of everything. `overlay = true` marks a short-lived panel (a prompt, a progress bar, a downed card): it keeps clear of the HUD but not of other panels, and other panels do not move for it. `essential = true` marks a panel the player needs (notifications, a progress bar, a downed card): it can be hidden while the HUD editor is open but never switched off in game. `shareSpot` is a name, in the same characters as `id`, for panels that never show at the same time (one job's stage card and another's): panels with the same `shareSpot` and anchor share one spot instead of stacking, and the editor shows one of them at a time. Registering the same `id` again updates it. The panel is removed when your resource stops. `false` when `def` is invalid (including a `shareSpot` that is not a name) |
 | `UnregisterWidget(id)` | `id: string` | `boolean` | |
 | `GetWidgetPosition(id)` | `id: string` | `position\|nil` | |
 | `SetVisible(visible)` | `visible: boolean` | `boolean` | Hide (`false`) or show the HUD for your resource. The HUD stays hidden while any resource holds it hidden, and a hold ends when its resource stops. `false` with no HUD |
@@ -794,7 +794,7 @@ Providers:
 | `GetReservedAreas()` | | `table` | `{ measured, screen = { w, h, pixelWidth, pixelHeight }, safeZone = { x, y, w, h }, areas = { { id, kind, x, y, w, h, resource? }, ... } }`, all in vh from the screen's top-left corner. `measured` is `true` when a HUD knows its own layout (oxide-hud) and `false` for `_default`'s estimates. `kind` is `widget`, `minimap` or `logo` (the HUD's own), `reserved` (`Config.ReservedAreas`), `estimate` (`_default`), or `panel` / `overlay` (registered panels, with their `resource`; skip your own ids) |
 | `GetTheme()` | | `table\|nil` | The server's accent colour, for panels that want to match the server's branding: `{ accent, light, dark, contrast }`, each a lowercase `'#rrggbb'` string. `nil` when the HUD has no accent set, and always from `_default` (keep your own colours then). See [Theme](#theme) |
 
-A **position** is `{ id, anchor, x, y, w, h, left, top, moved }`: the anchor and offsets to draw the panel at, its size, its top-left corner (vh), and `moved = true` when the player placed it. The anchor is always the one you registered. The first position `RegisterWidget` returns can be refined a moment later by `layoutChanged`, once oxide-hud has measured its layout.
+A **position** is `{ id, anchor, x, y, w, h, left, top, moved, hidden, hiddenBy }`: the anchor and offsets to draw the panel at, its size, its top-left corner (vh), `moved = true` when the player placed it, and `hidden = true` when your panel must not be drawn. `hiddenBy` says why while it is hidden: `'player'` (the player switched it off in game; never for an `essential` panel) or `'editor'` (only while the HUD editor is open: its eye, another resource soloed, or another panel of its shared spot shown). Draw the panel only while `hidden` is not `true`; `_default` and older HUDs leave both fields out. A panel switched off in game stops taking space, so others may move into it; one hidden only in the editor keeps its space. The anchor is always the one you registered. The first position `RegisterWidget` returns can be refined a moment later by `layoutChanged`, once oxide-hud has measured its layout.
 
 ### Client-side events (local `TriggerEvent`; subscribe with `AddEventHandler`)
 
@@ -803,7 +803,7 @@ Fired by the HUD resource, never by `_default`.
 | Event | Args | Description |
 |-------|------|-------------|
 | `olink:client:hud:ready` | | The HUD is up for the character: register (again) here as well as at your own start, which covers the HUD starting after you and restarting |
-| `olink:client:hud:layoutChanged` | `(positions)` | Something moved: a drag in the editor, an on-foot/in-vehicle switch, a HUD widget change, a resolution change, another panel. `positions` maps every registered `id` to its position; read your own ids. Call `GetReservedAreas()` again if you use it |
+| `olink:client:hud:layoutChanged` | `(positions)` | Something moved or a panel was hidden or shown: a drag in the editor, an on-foot/in-vehicle switch, a HUD widget change, a resolution change, another panel, the player hiding a panel in game or in the editor, the editor opening or closing. `positions` maps every registered `id` to its position; read your own ids. Call `GetReservedAreas()` again if you use it |
 | `olink:client:hud:visibilityChanged` | `(visible, reason)` | The HUD was hidden or shown. `reason` while hidden, the first that applies: `unloaded` (character select, not loaded yet), `external` (a resource called `SetVisible(false)`, such as a cinematic), `pause` (pause menu), `dead` (dead or downed), `phone` (phone open), `focus` (any NUI has focus). `nil` when visible. Follow only the reasons that suit your panel: a downed card must not hide for `dead`, and a minigame HUD whose own menu takes focus must not hide for `focus` |
 | `olink:client:hud:editMode` | `(enabled)` | The HUD editor opened or closed: show a still preview of your panel so the player can see what they are placing |
 | `olink:client:hud:themeChanged` | `(theme)` | The server accent appeared or went away: fired with the theme when the HUD starts and with `nil` when it stops, only when the HUD has an accent set. `theme` is shaped like `GetTheme()` |
@@ -826,7 +826,8 @@ end
 
 local function place(pos)
     if type(pos) ~= 'table' then return end
-    SendNUIMessage({ action = 'setPosition', data = { anchor = pos.anchor, x = pos.x, y = pos.y } })
+    -- hidden: switched off by the player, or hidden in the HUD editor. Missing means shown.
+    SendNUIMessage({ action = 'setPosition', data = { anchor = pos.anchor, x = pos.x, y = pos.y, hidden = pos.hidden == true } })
 end
 
 local function register()
@@ -836,6 +837,8 @@ local function register()
         anchor = 'top-right',
         size = { w = 24, h = 12 },
         offset = { x = 3, y = 4 },   -- where the page draws it without a HUD
+        -- essential = true,         -- the player needs it: never switched off in game
+        -- shareSpot = 'activity:left', -- shares a spot with panels that never show with it
     }))
     local visible, reason = hud('IsVisible')   -- events only report changes
     if visible ~= nil then follow(visible, reason) end
@@ -847,7 +850,7 @@ AddEventHandler('olink:client:hud:layoutChanged', function(positions) place(posi
 AddEventHandler('olink:client:hud:visibilityChanged', follow)
 ```
 
-In the page, pin the panel's root with the anchor: `right: <x>vh; top: <y>vh` for `top-right`, `left` and `bottom` for the other edges, and `left: calc(50% + <x>vh)` with `translateX(-50%)` on a centred axis.
+In the page, pin the panel's root with the anchor: `right: <x>vh; top: <y>vh` for `top-right`, `left` and `bottom` for the other edges, and `left: calc(50% + <x>vh)` with `translateX(-50%)` on a centred axis. Hide it while `hidden` is `true`, including your editor preview.
 
 Functions reach your resource as callable tables, so check the member and `pcall` it as above; on an o-link without the hud namespace `olink.hud` is `nil` and the panel stays where your page draws it. To keep a panel exactly where it is today when no HUD measures its layout, apply positions only when `GetReservedAreas().measured` is true (`_default` returns your `offset` unchanged anyway, but fires no events). Resources that start before o-link (UI providers such as a notification or progress bar resource) look the namespace up at call time: `GetResourceState('o-link') == 'started'`, then `exports['o-link']:olink().hud`.
 

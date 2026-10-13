@@ -49,7 +49,8 @@ end
 
 ---Positions of every registered panel: those with an offset first, as asked, then the rest
 ---in registration order, each clear of the estimates and the panels before it. Overlays keep
----clear of the estimates only, and no panel moves for them.
+---clear of the estimates only, and no panel moves for them. `essential` and `shareSpot` are
+---accepted and ignored: there is no editor to hide panels in.
 local function layout()
     local screen = currentScreen()
     local safe = Hud.SafeZone(GetSafeZoneSize(), screen)
@@ -81,7 +82,7 @@ local Default = {
     ---@return string
     GetResourceName = function() return '_default' end,
 
-    ---@param def table { id, label, anchor?, size? = { w, h }, offset? = { x, y }, resource? }
+    ---@param def table { id, label, anchor?, size? = { w, h }, offset? = { x, y }, overlay?, essential?, shareSpot?, resource? }
     ---@return table|false position
     RegisterWidget = function(def)
         local p = Hud.Normalize(def, GetInvokingResource())

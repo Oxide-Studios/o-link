@@ -1,5 +1,6 @@
 -- Isolated tests for the hud namespace: the screen maths, the `_default` provider (panels
--- placed clear of the estimated corner HUDs and the minimap, inside the safe zone, no theme),
+-- placed clear of the estimated corner HUDs and the minimap, inside the safe zone, never hidden,
+-- no theme),
 -- the oxide-hud adapter at call time (running, installed but stopped, failing exports) and
 -- provider selection with overrides.
 local rawprint = print
@@ -115,9 +116,16 @@ for what, def in pairs({
     longId = { id = ('x'):rep(65), label = 'x' },
     noLabel = { id = 'x' },
     badAnchor = { id = 'x', label = 'x', anchor = 'middle' },
+    badShareSpot = { id = 'x', label = 'x', shareSpot = 'a b' },
+    numberShareSpot = { id = 'x', label = 'x', shareSpot = 3 },
+    longShareSpot = { id = 'x', label = 'x', shareSpot = ('x'):rep(65) },
 }) do
     assert(Hud.Normalize(def) == false, 'rejects ' .. what)
 end
+assert(good.essential == false and good.shareSpot == nil, 'not essential, no shared spot by default')
+local flagged = Hud.Normalize({ id = 'res:stage', label = 'Stage', essential = true, shareSpot = 'activity:left' }, 'res')
+assert(flagged.essential == true and flagged.shareSpot == 'activity:left', 'essential and shareSpot kept')
+assert(Hud.Normalize({ id = 'x', label = 'x', essential = 'yes' }).essential == false, 'essential only when true')
 
 -- `_default` with no oxide-hud installed.
 resolution, safeSize, minimap = { 1920, 1080 }, 1.0, false
@@ -178,6 +186,18 @@ local wide = olink.hud.RegisterWidget({ id = 'wide', label = 'Wide', offset = { 
 Near(wide.left, 105, 'an off-screen offset is clamped on screen')
 Near(wide.x, 105, 'and its offset with it')
 
+-- `essential` and `shareSpot` are accepted and ignored: panels sharing a spot stack like any
+-- others, and `_default` never hides a panel.
+resolution = { 1920, 1080 }
+local s1 = olink.hud.RegisterWidget({ id = 's1', label = 'S1', anchor = 'bottom-right', size = { w = 20, h = 6 }, shareSpot = 'activity:right' })
+local s2 = olink.hud.RegisterWidget({ id = 's2', label = 'S2', anchor = 'bottom-right', size = { w = 20, h = 6 }, shareSpot = 'activity:right', essential = true })
+Near(s2.y, s1.y + 6 + 1, 'no shared spot without a HUD')
+assert(olink.hud.RegisterWidget({ id = 'bad', label = 'B', shareSpot = 'a b' }) == false, 'a bad shareSpot is refused')
+local ess = olink.hud.RegisterWidget({ id = 'ess', label = 'E', anchor = 'bottom', essential = true, offset = { x = 0, y = 3 } })
+assert(ess.y == 3 and ess.hidden == nil and ess.hiddenBy == nil and s1.hidden == nil and s2.hidden == nil, '_default never sets hidden')
+for _, id in ipairs({ 's1', 's2', 'ess' }) do olink.hud.UnregisterWidget(id) end
+resolution = { 1280, 1024 }
+
 local o1 = olink.hud.RegisterWidget({ id = 'o1', label = 'O1', anchor = 'bottom', size = { w = 30, h = 12 }, offset = { x = 0, y = 8 }, overlay = true })
 local o2 = olink.hud.RegisterWidget({ id = 'o2', label = 'O2', anchor = 'bottom', size = { w = 26, h = 5 }, overlay = true })
 assert(o1.y == 8, 'an overlay with an offset sits as asked')
@@ -219,9 +239,14 @@ hudExports = {
 }
 assert(olink.hud.GetResourceName() == 'oxide-hud', 'name while running')
 invoker = 'oxide-fire'
-local def = { id = 'fire:left', label = 'Fire', anchor = 'top-left', offset = { x = 3, y = 4 } }
+local def = { id = 'fire:left', label = 'Fire', anchor = 'top-left', offset = { x = 3, y = 4 }, essential = false, shareSpot = 'activity:left' }
 local pos = olink.hud.RegisterWidget(def)
 assert(pos.x == 1 and registered.resource == 'oxide-fire' and def.resource == nil, 'the caller is passed on a copy')
+assert(registered.shareSpot == 'activity:left' and registered.essential == false, 'essential and shareSpot reach the HUD')
+hudExports.GetPanelPosition = function(id) return { id = id, hidden = true, hiddenBy = 'player' } end
+local hiddenPos = olink.hud.GetWidgetPosition('fire:left')
+assert(hiddenPos.hidden == true and hiddenPos.hiddenBy == 'player', 'hidden and hiddenBy come back from the HUD')
+hudExports.GetPanelPosition = function(id) return id == 'known' and { id = id } or nil end
 assert(olink.hud.UnregisterWidget('fire:left') == true, 'unregister')
 assert(olink.hud.GetWidgetPosition('known').id == 'known' and olink.hud.GetWidgetPosition('unknown') == nil, 'positions')
 assert(olink.hud.SetVisible(false) == true and hidden[1] == 'oxide-fire' and hidden[2] == true, 'SetVisible(false) holds the HUD hidden for the caller')

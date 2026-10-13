@@ -167,16 +167,24 @@ function Hud.Position(id, anchor, x, y, w, h, screen, moved)
     }
 end
 
----Validate a RegisterWidget definition into { id, label, resource, anchor, w, h, overlay, x?, y? }.
+---@param name any
+---@return boolean
+function Hud.IsName(name)
+    return type(name) == 'string' and #name >= 1 and #name <= 64 and name:match('^[%w_%-%.:]+$') ~= nil
+end
+
+---Validate a RegisterWidget definition into
+---{ id, label, resource, anchor, w, h, overlay, essential, shareSpot?, x?, y? }.
 ---@return table|false def, string|nil reason
 function Hud.Normalize(def, resource)
     if type(def) ~= 'table' then return false, 'def' end
     local id = def.id
-    if type(id) ~= 'string' or #id < 1 or #id > 64 or not id:match('^[%w_%-%.:]+$') then return false, 'id' end
+    if not Hud.IsName(id) then return false, 'id' end
     if type(def.label) ~= 'string' or def.label == '' then return false, 'label' end
     local anchor = def.anchor
     if anchor == nil then anchor = 'top-left' end
     if not Hud.IsAnchor(anchor) then return false, 'anchor' end
+    if def.shareSpot ~= nil and not Hud.IsName(def.shareSpot) then return false, 'shareSpot' end
 
     local size = type(def.size) == 'table' and def.size or {}
     local w, h = tonumber(size.w), tonumber(size.h)
@@ -191,6 +199,8 @@ function Hud.Normalize(def, resource)
         w = math.min(w, 400),
         h = math.min(h, 100),
         overlay = def.overlay == true,
+        essential = def.essential == true,
+        shareSpot = def.shareSpot,
     }
     if type(def.offset) == 'table' then
         local x, y = tonumber(def.offset.x), tonumber(def.offset.y)

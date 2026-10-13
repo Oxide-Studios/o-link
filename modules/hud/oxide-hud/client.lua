@@ -33,7 +33,7 @@ olink._register('hud', {
 
     ---Register a panel the HUD places and the player can move in the HUD editor. `resource`
     ---is filled with the caller so the panel goes when that resource stops.
-    ---@param def table { id, label, anchor?, size? = { w, h }, offset? = { x, y } }
+    ---@param def table { id, label, anchor?, size? = { w, h }, offset? = { x, y }, overlay?, essential?, shareSpot? }
     ---@return table|false position
     RegisterWidget = function(def)
         if type(def) ~= 'table' then return false end
