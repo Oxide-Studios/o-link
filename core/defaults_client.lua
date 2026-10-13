@@ -340,6 +340,19 @@ stub('tablet', {
     ClearNotifications = false,
 })
 
+stub('hud', {
+    'GetResourceName',
+    'RegisterWidget', 'UnregisterWidget', 'GetWidgetPosition',
+    'SetVisible', 'IsVisible', 'GetReservedAreas',
+}, {
+    GetResourceName = 'none',
+    RegisterWidget = false,
+    UnregisterWidget = false,
+    SetVisible = false,
+    IsVisible = true,
+    GetReservedAreas = function() return { measured = false, areas = {} } end,
+})
+
 stub('vehicleproperties', {
     'GetVehicleProperties', 'SetVehicleProperties',
 }, {

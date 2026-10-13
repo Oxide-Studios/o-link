@@ -131,6 +131,8 @@ client_scripts {
     'modules/vehicles/**/client.lua',
     'modules/logger/**/client.lua',
     'modules/tablet/**/client.lua',
+    'modules/hud/shared.lua',
+    'modules/hud/**/client.lua',
     'lifecycle/**/client.lua',
     'core/loader_client.lua',
 }

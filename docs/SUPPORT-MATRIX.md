@@ -76,6 +76,7 @@ Item entries accept either key spelling: `name` or `item`, and `count` or `amoun
 | `zones` | client | `oxlib`, `polyzone` |
 | `placement` | client | `modules/placement` |
 | `tablet` | server + client | `oxide-tablet` (no `_default`: the stubs return falsy so consumers fall back to their own UI). Hosts apps, home-screen widgets and push notifications |
+| `hud` | client | `_default`, `oxide-hud`. Places other resources' on-screen panels around the HUD and relays its visibility; `_default` uses panels' own offsets and estimates the usual corner HUDs. `qbx_hud` has no provider: its hide/show events only toggle its vehicle panel, which its own loop shows again |
 
 `notify` auto-detection selects one renderer. `ox_lib` is fallback-only unless
 forced with `Config.Overrides.Notify = 'ox_lib'`; if multiple non-`ox_lib`

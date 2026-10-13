@@ -39,6 +39,7 @@ Config.Overrides = {
     -- Voice             = 'pma-voice',
     -- Gang              = 'oxide-core',
     -- Tablet            = 'oxide-tablet',
+    -- Hud               = 'oxide-hud',
 }
 
 Config.Debug = true
