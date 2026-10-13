@@ -39,8 +39,7 @@ end
 
 local lastState = deriveState((QBCore.Functions.GetPlayerData() or {}).metadata)
 
-RegisterNetEvent('QBCore:Player:SetPlayerData', function(playerData)
-    local newState = deriveState(playerData and playerData.metadata)
+local function transitionTo(newState)
     if newState == lastState then return end
     local oldState = lastState
     lastState = newState
@@ -53,4 +52,13 @@ RegisterNetEvent('QBCore:Player:SetPlayerData', function(playerData)
         TriggerEvent('olink:client:playerRevived', {})
     end
     TriggerEvent('olink:client:playerDeathStateChanged', newState, oldState, {})
+end
+
+-- Current qb-core pushes metadata edits as a single field; older builds resend the whole PlayerData.
+RegisterNetEvent('QBCore:Player:UpdatePlayerDataField', function(key, value)
+    if key == 'metadata' then transitionTo(deriveState(value)) end
+end)
+
+RegisterNetEvent('QBCore:Player:SetPlayerData', function(playerData)
+    transitionTo(deriveState(playerData and playerData.metadata))
 end)
