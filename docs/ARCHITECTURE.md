@@ -65,7 +65,7 @@ end
 
 ## Circular Provider/Consumer Pattern
 
-A "circular" resource declares `o-link` in its `dependencies { ... }` AND provides an o-link namespace (today: `oxide-vehicles`, `oxide-dispatch`, `oxide-banking`, `oxide-tablet`, `oxide-hud`).
+A "circular" resource declares `o-link` in its `dependencies { ... }` AND provides an o-link namespace (today: `oxide-vehicles`, `oxide-dispatch`, `oxide-banking`, `oxide-tablet`, `oxide-phone`, `oxide-gangs`, `oxide-medical`, `oxide-logger`, `oxide-hud`).
 
 ### The cross-VM snapshot trap
 
@@ -142,6 +142,7 @@ o-link/
 |   `-- es_extended/
 `-- modules/
     |-- callback/
+    |-- map/
     |-- framework/
     |-- character/
     |-- multichar/
@@ -156,7 +157,9 @@ o-link/
     |-- progressbar/
     |-- vehiclekey/
     |-- fuel/
+    |-- seatbelt/
     |-- weather/
+    |-- voice/
     |-- input/
     |-- menu/
     |-- radial/
@@ -234,3 +237,5 @@ ensure o-link
 ensure oxide-police
 ensure oxide-shops
 ```
+
+The Oxide Core adapters (`oxide-inventory`, `oxide-death`, `oxide-identity`) only register when their resource is already started as o-link loads, so those resources start before o-link and never list it in their dependencies. `oxide-accounts` and `oxide-needs` guard on `oxide-core` instead; the `oxide-needs` server adapter also checks oxide-needs when each call is made, so it works whether oxide-needs starts before or after o-link.

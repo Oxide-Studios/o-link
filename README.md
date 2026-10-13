@@ -6,7 +6,7 @@ Its public API is organized into small namespaces such as `framework`, `characte
 
 ## Current State
 
-- The resource is real and substantial. It ships 37 top-level module folders under [`modules`](./modules), 4 lifecycle adapters under [`lifecycle`](./lifecycle), and internal docs under [`docs`](./docs).
+- The resource is real and substantial. It ships 42 top-level module folders under [`modules`](./modules), 4 lifecycle adapters under [`lifecycle`](./lifecycle), and internal docs under [`docs`](./docs).
 - The bridge exports a single shared object through `exports('olink', ...)` in [`core/shared.lua`](./core/shared.lua).
 - Module implementations are loaded by `fxmanifest.lua` glob patterns and self-register with `olink._register(...)`.
 - `Config.Debug` is implemented and controls loader logging.

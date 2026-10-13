@@ -193,6 +193,8 @@ Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stre
 
 Sources: Oxide reads the `oxide:metadata` bag, QB reads `PlayerData.metadata` (`hud:client:UpdateNeeds` / `UpdateStress`, `QBCore:Player:UpdatePlayerDataField`, `SetPlayerData`), QBX reads the `hunger` / `thirst` / `stress` player bags, ESX normalizes `esx_status:onTick` (about once a second).
 
+The `oxide-needs` adapter registers on both sides while `oxide-core` is running and `oxide-needs` is installed, so it works whether oxide-needs starts before or after o-link. The server side checks oxide-needs when each call is made: until it is started `GetNeed` returns `nil` and `SetNeed` / `ModifyNeed` return `false`.
+
 ## Module: license (server only)
 
 Licenses are bool flags keyed by license type (`'driver'`, `'weapon'`, `'business'`, etc.). The bridge does not validate type names — the consumer (e.g. oxide-police) owns the type catalogue. On QB/QBX/Oxide, types are arbitrary strings stored in player metadata. On ESX, types must exist in the `licenses` table (`esx_license`) for ESX-aware UIs to label them; the bridge will still write rows for unknown types but server owners should seed the table for consistency.
@@ -543,7 +545,7 @@ Sources: `oxide-vehicles` `IsSeatbeltOn` export (it has no event, so the adapter
 | `saltychat` | `SaltyChat_PluginStateChanged` = in game (assumed until the first event) | `SaltyChat_TalkStateChanged` (needs `RequestTalkStates`) | `GetVoiceRange` export for `distance`; `index` and `count` from `SaltyChat_VoiceRangeChanged`; no labels | `GetRadioChannel(true)` export, transmit from `SaltyChat_RadioTrafficStateChanged` |
 | `_default` | `MumbleIsConnected` | `NetworkIsPlayerTalking` | one mode, `distance` from `MumbleGetTalkerProximity` | never |
 
-`pma-voice` and `saltychat` register while installed and read their state at call time, so a voice resource that starts after o-link (or after its consumer) is picked up without a restart.
+`pma-voice` and `saltychat` register while installed and read their state at call time, so a voice resource that starts after o-link (or after its consumer) is picked up without a restart. With both installed, set `Config.Overrides.Voice` to choose one.
 
 ## Module: entity (server + client)
 
@@ -1097,7 +1099,7 @@ data = {
 ### Per-framework caveats
 
 - **ESX (`es_extended`)** — no native downed/laststand concept; `playerDowned` never fires. Death payload includes `attacker`, `weapon`, `cause`, `coords` from `esx:onPlayerDeath`. `playerRespawned` is not emitted (ESX does not distinguish revive from respawn).
-- **QB-Core (`qb-core`)** — payloads are empty `{}` on death/downed/revive transitions because `hospital:server:SetDeathStatus` and `hospital:server:SetLaststandStatus` carry no killer info. Source-of-truth is metadata `isdead` / `inlaststand` (no statebag).
+- **QB-Core (`qb-core`)** — payloads are empty `{}` on death/downed/revive transitions because `hospital:server:SetDeathStatus` and `hospital:server:SetLaststandStatus` carry no killer info. Source-of-truth is metadata `isdead` / `inlaststand` (no statebag); the client relay reads it from `QBCore:Player:UpdatePlayerDataField` (current qb-core) and `QBCore:Player:SetPlayerData` (older builds). `playerRespawned` is not emitted.
 - **QBX (`qbx_core`)** — death/downed payloads include `attacker` and `weapon`. `playerRespawned` is not emitted (qbx_medical reports respawn as a revive).
 - **oxide-death** — emits all five events including `playerRespawned`. Payloads include `cause` (causeOfDeath) and `coords`.
 - **`_default` fallback** — when no supported framework or medical resource is detected, a 500ms client poll on `IsPedDeadOrDying` emits `playerDied` / `playerRevived` only (no downed, no payload).

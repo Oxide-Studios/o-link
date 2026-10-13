@@ -91,7 +91,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
-| `fuel` | client | `bigDaddy-Fuel`, `cdn-fuel`, `esx-sna-fuel`, `lc_fuel`, `legacyfuel`, `okokGasStation`, `oxide-vehicles`, `ox_fuel`, `ps-fuel`, `qb-fuel`, `qs-fuelstations`, `renewed-Fuel`, `ti_fuel`, `x-fuel` |
+| `fuel` | client | `_default` (GTA's own fuel level), `bigDaddy-Fuel`, `cdn-fuel`, `esx-sna-fuel`, `lc_fuel`, `legacyfuel`, `okokGasStation`, `oxide-vehicles`, `ox_fuel`, `ps-fuel`, `qb-fuel`, `qs-fuelstations`, `renewed-Fuel`, `ti_fuel`, `x-fuel` |
 | `weather` | client; server v2 with `oxide-weather` | `_default`, `cd_easytime`, `night_natural_disasters`, `oxide-weather`, `qb-weathersync`, `renewed-weathersync` |
 | `vehiclekey` | client | `cd_garage`, `f_realcarkeyssystem`, `jacksam`, `mk_vehiclekeys`, `mrnewbvehiclekeys`, `mVehicle`, `okokGarage`, `oxide-vehicles`, `qb-vehiclekeys`, `qbx_vehiclekeys`, `qs-vehiclekeys`, `renewed-vehiclekeys`, `t1ger_keys`, `wasabi_carlock` |
 | `vehicleOwnership` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
@@ -100,7 +100,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | `needs` | server + client | `es_extended`, `oxide-needs`, `qb-core`, `qbx_core` (client also `_default`) |
 | `seatbelt` | client | `_default`, `oxide-vehicles`, `qb-smallresources`, `qbx_seatbelt` |
 | `voice` | client | `_default` (built-in voice), `pma-voice`, `saltychat` |
-| `gang` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
+| `gang` | server + client | `es_extended`, `oxide-core`, `oxide-gangs`, `qb-core`, `qbx_core` |
 
 ## Economy, Services, and World
 
