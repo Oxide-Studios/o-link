@@ -728,8 +728,12 @@ local MY_ID = 'my-resource:status'
 local function hud(fn, ...)
     local call = olink.hud and olink.hud[fn]   -- nil on an o-link without the hud namespace
     if not call then return nil end
-    local ok, result = pcall(call, ...)
-    if ok then return result end
+    local results = table.pack(pcall(call, ...))
+    if results[1] then return table.unpack(results, 2, results.n) end
+end
+
+local function follow(visible, reason)
+    SendNUIMessage({ action = 'setHidden', data = not visible and (reason == 'pause' or reason == 'external') })
 end
 
 local function place(pos)
@@ -745,14 +749,14 @@ local function register()
         size = { w = 24, h = 12 },
         offset = { x = 3, y = 4 },   -- where the page draws it without a HUD
     }))
+    local visible, reason = hud('IsVisible')   -- events only report changes
+    if visible ~= nil then follow(visible, reason) end
 end
 
 CreateThread(function() Wait(1000) register() end)
 AddEventHandler('olink:client:hud:ready', register)
 AddEventHandler('olink:client:hud:layoutChanged', function(positions) place(positions[MY_ID]) end)
-AddEventHandler('olink:client:hud:visibilityChanged', function(visible, reason)
-    SendNUIMessage({ action = 'setHidden', data = not visible and (reason == 'pause' or reason == 'external') })
-end)
+AddEventHandler('olink:client:hud:visibilityChanged', follow)
 ```
 
 In the page, pin the panel's root with the anchor: `right: <x>vh; top: <y>vh` for `top-right`, `left` and `bottom` for the other edges, and `left: calc(50% + <x>vh)` with `translateX(-50%)` on a centred axis.
