@@ -1,5 +1,5 @@
 -- oxide-core syncs the needs keys of the character metadata to the `oxide:metadata` bag, so this
--- guards on oxide-core: oxide-needs depends on o-link and is never started when o-link loads.
+-- guards on oxide-core and works whether oxide-needs starts before or after o-link.
 if not olink._guardImpl('Needs', 'oxide-needs', 'oxide-core') then return end
 if GetResourceState('oxide-needs') == 'missing' then return end
 
