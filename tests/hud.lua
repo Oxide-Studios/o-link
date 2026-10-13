@@ -235,7 +235,7 @@ hudExports = {
     SetHiddenBy = function(owner, value) hidden = { owner, value } return true end,
     GetVisibility = function() return { visible = false, reason = 'pause' } end,
     GetReservedAreas = function() return { measured = true, areas = { { id = 'hud:w_1' } } } end,
-    GetTheme = function() return { accent = '#724cab', light = '#9c82c4', dark = '#4a316f', contrast = '#ffffff' } end,
+    GetTheme = function() return { accent = '#724cab', light = '#9c82c4', dark = '#4a316f', contrast = '#ffffff', locked = true } end,
 }
 assert(olink.hud.GetResourceName() == 'oxide-hud', 'name while running')
 invoker = 'oxide-fire'
@@ -256,7 +256,7 @@ local v, r = olink.hud.IsVisible()
 assert(v == false and r == 'pause', 'visibility and reason')
 assert(olink.hud.GetReservedAreas().measured == true, 'areas from the HUD')
 local theme = olink.hud.GetTheme()
-assert(theme and theme.accent == '#724cab' and theme.contrast == '#ffffff', 'theme from the HUD')
+assert(theme and theme.accent == '#724cab' and theme.contrast == '#ffffff' and theme.locked == true, 'theme from the HUD, with its lock')
 hudExports.GetTheme = function() return nil end
 assert(olink.hud.GetTheme() == nil, 'no theme when the HUD has none')
 
