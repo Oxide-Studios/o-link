@@ -268,6 +268,34 @@ stub('death', {
     SetSuppressed = false,
 })
 
+stub('needs', {
+    'GetResourceName', 'Get', 'GetAll',
+}, {
+    GetResourceName = 'none',
+    GetAll = function() return {} end,
+})
+
+stub('money', {
+    'GetResourceName', 'GetBalance',
+}, {
+    GetResourceName = 'none',
+    GetBalance = 0,
+})
+
+stub('seatbelt', {
+    'GetResourceName', 'IsOn',
+}, {
+    GetResourceName = 'none',
+    IsOn = false,
+})
+
+stub('voice', {
+    'GetResourceName', 'GetState',
+}, {
+    GetResourceName = 'none',
+    GetState = function() return { connected = false, talking = false, range = {}, radio = { active = false } } end,
+})
+
 stub('gang', {
     'GetResourceName',
     'Get', 'GetAll', 'GetGrades', 'HasPermission',
