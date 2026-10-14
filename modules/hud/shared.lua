@@ -26,6 +26,14 @@ function Hud.IsAnchor(anchor)
     return type(anchor) == 'string' and AXES[anchor] ~= nil
 end
 
+---How an anchor pins each axis: 'start' (left or top edge), 'end' (right or bottom edge) or
+---'middle' (the centre line).
+---@return string x, string y
+function Hud.Axes(anchor)
+    local axes = AXES[anchor] or AXES['top-left']
+    return axes[1], axes[2]
+end
+
 local function round(n)
     return math.floor(n * 100 + 0.5) / 100
 end

@@ -2,14 +2,16 @@
 -- placed clear of the estimated corner HUDs and the minimap, inside the safe zone, never hidden,
 -- no theme),
 -- the oxide-hud adapter at call time (running, installed but stopped, failing exports) and
--- provider selection with overrides.
+-- provider selection with overrides, and AddPanel: the panel table a resource's page draws from,
+-- following the HUD's events.
 local rawprint = print
-local output, states, stopHandlers, calls = {}, {}, {}, {}
+local output, states, stopHandlers, calls, handlers = {}, {}, {}, {}, {}
 local resolution, safeSize, minimap, invoker = { 1920, 1080 }, 1.0, false, 'consumer'
 local hudExports = {}
 
 Config = { Debug = false, Overrides = {} }
 IsDuplicityVersion = function() return false end
+SetTimeout = function() end
 GetResourceState = function(name) return states[name] or 'missing' end
 GetInvokingResource = function() return invoker end
 GetCurrentResourceName = function() return 'o-link' end
@@ -25,6 +27,11 @@ GetScriptGfxPosition = function(x, y)
 end
 AddEventHandler = function(name, fn)
     if name == 'onClientResourceStop' then stopHandlers[#stopHandlers + 1] = fn end
+    handlers[name] = handlers[name] or {}
+    table.insert(handlers[name], fn)
+end
+local function Fire(name, ...)
+    for _, fn in ipairs(handlers[name] or {}) do fn(...) end
 end
 exports = setmetatable({}, {
     __index = function(_, resource)
@@ -44,13 +51,14 @@ exports = setmetatable({}, {
 print = function(...) output[#output + 1] = table.concat({ ... }, ' ') end
 
 local function Load(scenario, overrides)
-    states, stopHandlers, calls, output = scenario or {}, {}, {}, {}
+    states, stopHandlers, calls, output, handlers = scenario or {}, {}, {}, {}, {}
     Config.Overrides = overrides or {}
     dofile('core/shared.lua')
     dofile('core/defaults_client.lua')
     dofile('modules/hud/shared.lua')
     dofile('modules/hud/_default/client.lua')
     dofile('modules/hud/oxide-hud/client.lua')
+    dofile('modules/hud/panels.lua')
 end
 
 local function Near(a, b, what)
@@ -270,6 +278,195 @@ assert(olink.hud.IsVisible() == true, 'a failing export reads as visible')
 assert(olink.hud.GetTheme() == nil, 'a failing export has no theme')
 hudExports.GetTheme = function() return '#724cab' end
 assert(olink.hud.GetTheme() == nil, 'a theme that is not a table is ignored')
+invoker = 'consumer'
+
+-- AddPanel without a HUD: one call straight away, nothing hosted, the page keeps its own spot.
+resolution, safeSize, minimap = { 1920, 1080 }, 1.0, false
+Load()
+local got = {}
+local function Collect(state) got[#got + 1] = state end
+assert(olink.hud.AddPanel(nil, Collect) == false, 'no def')
+assert(olink.hud.AddPanel({ id = 'consumer:timer', label = 'Timer' }) == false, 'no function')
+assert(olink.hud.AddPanel({ id = 'bad id', label = 'Timer' }, Collect) == false, 'a bad def is refused')
+assert(#got == 0, 'nothing is called for a refused panel')
+assert(olink.hud.AddPanel({ id = 'consumer:timer', label = 'Timer', anchor = 'top', offset = { x = 0, y = 3.5 } }, Collect) == true, 'added')
+assert(#got == 1, 'called once straight away')
+local s = got[1]
+assert(s.id == 'consumer:timer' and s.hosted == false and s.show == true and s.preview == false, 'not hosted, shown, no preview')
+assert(s.style.left == '' and s.style.right == '' and s.style.top == '' and s.style.bottom == '' and s.style.opacity == '', 'an empty style keeps the page position')
+assert(s.theme == nil and s.position == nil, 'no theme, no position')
+assert(olink.hud.GetWidgetPosition('consumer:timer'), 'registered with the provider too')
+-- A function from another resource arrives as a callable table.
+local fromOtherVm = setmetatable({}, { __call = function(_, state) got[#got + 1] = state end })
+assert(olink.hud.AddPanel({ id = 'consumer:card', label = 'Card' }, fromOtherVm) == true and #got == 2, 'a callable table works')
+assert(olink.hud.AddPanel({ id = 'consumer:timer', label = 'Timer', anchor = 'top' }, Collect) == true and #got == 3, 'adding again sends again')
+assert(olink.hud.RemovePanel('consumer:card') == true and olink.hud.RemovePanel('consumer:card') == false, 'removed once')
+assert(olink.hud.GetWidgetPosition('consumer:card') == nil, 'unregistered from the provider')
+Fire('olink:client:hud:visibilityChanged', false, 'pause')
+assert(#got == 4 and got[4].show == false, 'hidden with a HUD that says so')
+for _, fn in ipairs(stopHandlers) do fn('consumer') end
+Fire('olink:client:hud:visibilityChanged', true, nil)
+assert(#got == 4, 'nothing reaches a stopped resource')
+
+-- AddPanel with oxide-hud running.
+Load({ ['oxide-hud'] = 'started' })
+local registeredDefs = {}
+local nextPos = { anchor = 'top-right', x = 3, y = 4, w = 30, h = 18, left = 144.78, top = 4 }
+local visibility = { visible = true }
+local hudTheme = { accent = '#724CAB', light = '#9c82c4', dark = '#4a316f', contrast = '#ffffff', locked = false }
+hudExports = {
+    RegisterPanel = function(def)
+        registeredDefs[#registeredDefs + 1] = def
+        local pos = {}
+        for k, v in pairs(nextPos) do pos[k] = v end
+        pos.id = def.id
+        return pos
+    end,
+    UnregisterPanel = function() return true end,
+    GetPanelPosition = function() return nil end,
+    SetHiddenBy = function() return true end,
+    GetVisibility = function() return visibility end,
+    GetReservedAreas = function() return { measured = true, areas = {} } end,
+    GetTheme = function() return hudTheme end,
+}
+invoker = 'oxide-postaljob'
+got = {}
+local tutorial = {}
+assert(olink.hud.AddPanel({
+    id = 'oxide-postaljob:tutorial', label = 'Tutorial', anchor = 'top-right', size = { w = 30, h = 18 },
+    offset = { x = 4, y = 12 }, overlay = true, hideWith = { 'phone' }, accent = false,
+}, function(state) tutorial[#tutorial + 1] = state end), 'added on the HUD')
+local def = registeredDefs[1]
+assert(def.resource == 'oxide-postaljob' and def.overlay == true and def.offset.x == 4 and def.size.w == 30, 'registered for the caller with its own fields')
+assert(def.hideWith == nil and def.accent == nil, 'AddPanel options stay in o-link')
+s = tutorial[1]
+assert(s.hosted == true and s.show == true and s.preview == false, 'hosted')
+assert(s.style.right == '3vh' and s.style.top == '4vh' and s.style.left == 'auto' and s.style.bottom == 'auto', 'top-right CSS')
+assert(s.position.anchor == 'top-right' and s.position.x == 3, 'the position for panels drawn from Lua')
+assert(s.theme == nil, 'accent = false keeps the panel colours')
+
+nextPos = { anchor = 'top', x = 0, y = 3.5, w = 26, h = 6, left = 75.89, top = 3.5 }
+assert(olink.hud.AddPanel({ id = 'oxide-postaljob:timer', label = 'Timer', anchor = 'top', shareSpot = 'job-timer' }, Collect))
+s = got[1]
+assert(s.style.left == 'calc(50% + 0vh)' and s.style.right == 'auto' and s.style.top == '3.5vh', 'a centred axis is measured from the centre line')
+assert(s.theme and s.theme.accent == '#724cab' and s.theme.locked == false, 'the server accent, lower case')
+assert(registeredDefs[2].shareSpot == 'job-timer', 'shareSpot reaches the HUD')
+
+-- Positions from the HUD's layout reports, sent only when something changed.
+local function Layout(timer, extra)
+    local list = { ['oxide-postaljob:timer'] = timer, ['oxide-postaljob:tutorial'] = { id = 'oxide-postaljob:tutorial', anchor = 'top-right', x = 3, y = 4, w = 30, h = 18, left = 144.78, top = 4 } }
+    for k, v in pairs(extra or {}) do list[k] = v end
+    Fire('olink:client:hud:layoutChanged', list)
+end
+local count = #got
+Layout({ id = 'oxide-postaljob:timer', anchor = 'top', x = -2.25, y = 10, w = 26, h = 6, left = 73.64, top = 10 })
+assert(#got == count + 1 and got[#got].style.left == 'calc(50% - 2.25vh)' and got[#got].style.top == '10vh', 'moved left of centre')
+assert(#tutorial == 1, 'an unchanged panel is not sent again')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'top', x = -2.25, y = 10, w = 26, h = 6, left = 73.64, top = 10 }, { other = { id = 'other' } })
+assert(#got == count + 1, 'the same layout sends nothing')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'bottom-left', x = 1.5, y = 2, w = 26, h = 6, left = 1.5, top = 92 })
+s = got[#got]
+assert(s.style.left == '1.5vh' and s.style.bottom == '2vh' and s.style.right == 'auto' and s.style.top == 'auto', 'bottom-left CSS')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'right', x = 10, y = -4, w = 26, h = 6, left = 141.78, top = 43 })
+s = got[#got]
+assert(s.style.right == '10vh' and s.style.top == 'calc(50% - 4vh)' and s.style.bottom == 'auto', 'right-middle CSS')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'top', x = 0, y = 3.5, w = 26, h = 6, left = 75.89, top = 3.5 })
+
+-- Following the HUD: the default reasons, a panel's own list.
+Fire('olink:client:hud:visibilityChanged', false, 'pause')
+assert(got[#got].show == false and tutorial[#tutorial].show == true, 'the default follows pause; the tutorial follows only the phone')
+Fire('olink:client:hud:visibilityChanged', false, 'phone')
+assert(got[#got].show == true and tutorial[#tutorial].show == false, 'the default does not follow the phone')
+Fire('olink:client:hud:visibilityChanged', false, 'focus')
+assert(got[#got].show == true and tutorial[#tutorial].show == true, 'an unknown reason hides nothing')
+for _, reason in ipairs({ 'unloaded', 'external', 'dead' }) do
+    Fire('olink:client:hud:visibilityChanged', false, reason)
+    assert(got[#got].show == false, 'the default follows ' .. reason)
+end
+Fire('olink:client:hud:visibilityChanged', true, nil)
+assert(got[#got].show == true and tutorial[#tutorial].show == true, 'shown again')
+local never = {}
+assert(olink.hud.AddPanel({ id = 'oxide-postaljob:never', label = 'Never', hideWith = false }, function(state) never[#never + 1] = state end))
+Fire('olink:client:hud:visibilityChanged', false, 'external')
+assert(never[#never].show == true, 'hideWith = false never hides with the HUD')
+Fire('olink:client:hud:visibilityChanged', true, nil)
+olink.hud.RemovePanel('oxide-postaljob:never')
+
+-- The HUD editor: preview while it shows the panel, nothing while it leaves it out, faded
+-- while the player has it switched off in game.
+Fire('olink:client:hud:editMode', true)
+s = got[#got]
+assert(s.preview == true and s.show == true and s.style.opacity == '', 'previewing')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'top', x = 0, y = 3.5, w = 26, h = 6, left = 75.89, top = 3.5, hidden = true, hiddenBy = 'editor' })
+s = got[#got]
+assert(s.show == false and s.preview == false, 'left out by the editor')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'top', x = 0, y = 3.5, w = 26, h = 6, left = 75.89, top = 3.5, hidden = true, hiddenBy = 'player' })
+s = got[#got]
+assert(s.show == true and s.preview == true and s.style.opacity == '0.45', 'switched off in game: a faded preview')
+Fire('olink:client:hud:editMode', false)
+s = got[#got]
+assert(s.show == false and s.preview == false and s.style.opacity == '', 'switched off in game once the editor closes')
+Layout({ id = 'oxide-postaljob:timer', anchor = 'top', x = 0, y = 3.5, w = 26, h = 6, left = 75.89, top = 3.5 })
+assert(got[#got].show == true, 'switched on again')
+
+-- The accent coming and going. The tutorial never had one, so it is not sent again.
+local tutorialCount = #tutorial
+Fire('olink:client:hud:themeChanged', nil)
+assert(got[#got].theme == nil and #tutorial == tutorialCount, 'no accent')
+Fire('olink:client:hud:themeChanged', { accent = '#123456', light = '#abcdef', dark = '#000000', contrast = '#ffffff' })
+assert(got[#got].theme.accent == '#123456', 'a new accent')
+Fire('olink:client:hud:themeChanged', { accent = 'red', light = '#abcdef', dark = '#000000', contrast = '#ffffff' })
+assert(got[#got].theme == nil, 'an accent that is not #rrggbb is ignored')
+Fire('olink:client:hud:themeChanged', hudTheme)
+assert(#tutorial == tutorialCount, 'the tutorial was never sent an accent')
+
+-- The HUD (re)starting registers every panel again.
+local before = #registeredDefs
+Fire('olink:client:hud:ready')
+assert(#registeredDefs == before + 2, 'both panels registered again')
+for i = before + 1, #registeredDefs do
+    assert(registeredDefs[i].resource == 'oxide-postaljob', 'still registered for their resource')
+end
+
+-- A function that fails warns once and the rest carry on.
+local failing = 0
+assert(olink.hud.AddPanel({ id = 'oxide-postaljob:broken', label = 'Broken' }, function() failing = failing + 1 error('boom') end))
+Fire('olink:client:hud:editMode', true)
+Fire('olink:client:hud:editMode', false)
+assert(failing == 3, 'still called')
+local warnings = 0
+for _, line in ipairs(output) do if line:find('oxide-postaljob:broken', 1, true) then warnings = warnings + 1 end end
+assert(warnings == 1, 'warned once')
+olink.hud.RemovePanel('oxide-postaljob:broken')
+
+-- The HUD still answering while it stops: o-link reads it again once the stop has finished.
+local later = {}
+SetTimeout = function(_, fn) later[#later + 1] = fn end
+count = #got
+for _, fn in ipairs(stopHandlers) do fn('oxide-hud') end
+assert(#got == count and #later == 1, 'still hosted while the HUD answers, so read again after the stop')
+states['oxide-hud'] = 'stopped'
+later[1]()
+assert(#got == count + 1 and got[#got].hosted == false, 'unhosted once the stop has finished')
+SetTimeout = function() end
+states['oxide-hud'] = 'started'
+Fire('olink:client:hud:ready')
+assert(got[#got].hosted == true, 'hosted again when the HUD is back')
+
+-- The HUD stopping: every panel goes back to its page's own spot, with its own colours.
+states['oxide-hud'] = 'stopping'
+count = #got
+for _, fn in ipairs(stopHandlers) do fn('oxide-hud') end
+s = got[#got]
+assert(#got == count + 1 and s.hosted == false and s.style.top == '' and s.style.left == '' and s.theme == nil and s.position == nil, 'unhosted when the HUD stops')
+assert(tutorial[#tutorial].hosted == false, 'every panel')
+-- And the resource stopping: nothing more is sent to it.
+states['oxide-hud'] = 'started'
+count = #got
+for _, fn in ipairs(stopHandlers) do fn('oxide-postaljob') end
+Fire('olink:client:hud:ready')
+Fire('olink:client:hud:editMode', true)
+assert(#got == count, 'a stopped resource is forgotten')
 invoker = 'consumer'
 
 -- Overrides.

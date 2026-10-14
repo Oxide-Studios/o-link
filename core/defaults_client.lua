@@ -344,11 +344,14 @@ stub('hud', {
     'GetResourceName',
     'RegisterWidget', 'UnregisterWidget', 'GetWidgetPosition',
     'SetVisible', 'IsVisible', 'GetReservedAreas', 'GetTheme',
+    'AddPanel', 'RemovePanel',
 }, {
     GetResourceName = 'none',
     RegisterWidget = false,
     UnregisterWidget = false,
     SetVisible = false,
+    AddPanel = false,
+    RemovePanel = false,
     IsVisible = true,
     GetReservedAreas = function() return { measured = false, areas = {} } end,
 })

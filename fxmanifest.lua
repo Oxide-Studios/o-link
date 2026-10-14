@@ -133,6 +133,7 @@ client_scripts {
     'modules/tablet/**/client.lua',
     'modules/hud/shared.lua',
     'modules/hud/**/client.lua',
+    'modules/hud/panels.lua',
     'lifecycle/**/client.lua',
     'core/loader_client.lua',
 }

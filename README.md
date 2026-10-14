@@ -18,6 +18,7 @@ Its public API is organized into small namespaces such as `framework`, `characte
 - Architecture: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 - Verified module and implementation matrix: [`docs/SUPPORT-MATRIX.md`](./docs/SUPPORT-MATRIX.md)
 - Standalone server integration guide: [`docs/STANDALONE-INTEGRATION.md`](./docs/STANDALONE-INTEGRATION.md)
+- Placing your UI around a server HUD (`olink.hud.AddPanel`): [`docs/HUD.md`](./docs/HUD.md)
 
 ## Minimal Usage
 
