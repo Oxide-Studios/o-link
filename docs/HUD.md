@@ -112,9 +112,11 @@ When the column is full, it never lands on the vehicle cluster, the minimap or t
 
 Panels claim their spots in the same order every session: essential panels first, then the one whose `offset` is nearest its anchor's edge, then by `id`. A panel the player dragged stays exactly where they put it.
 
+**Panels against the edge.** A panel at offset `y = 0` on a top or bottom anchor belongs against that edge, like a card that peeks up from the bottom of the screen. It stays flush with the edge unless something the HUD draws right now is in the way (the speedometer in a vehicle, a weapon panel while a weapon is out), and then it sits directly on top of that, with no gap. It never covers the HUD, and it does not move for room the HUD keeps for parts that are hidden at the moment. Other panels that start in the same corner stack above it. Use `y = 0` only for a panel that should touch the edge; any other offset keeps the usual 1 vh gap.
+
 What this means for your panel:
 
-- Give the `offset` you want, nearest the edge first: a panel asking to sit 2 vh from the edge is placed before one asking for 12.
+- Give the `offset` you want, nearest the edge first: a panel asking to sit 2 vh from the edge is placed before one asking for 12. A card that peeks from the edge uses `y = 0`.
 - Mark `essential` only for what the player must not miss. Essential panels get their spots first and are covered last.
 - Mark anything that shows briefly as `overlay`. Overlays take no space, so they never push your other panels or anyone else's.
 - Register the size your panel draws at. A box larger than the panel takes room other panels could use.
