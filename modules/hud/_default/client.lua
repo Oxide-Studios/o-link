@@ -72,7 +72,7 @@ local function layout()
         local p = panels[id]
         if not p.x then
             local sx, sy = Hud.SafeOffset(p.anchor, safe)
-            local x, y = Hud.Place(p.anchor, p.w, p.h, sx, sy, p.overlay and fixed or taken, screen)
+            local x, y = Hud.Place(p.anchor, p.w, p.h, sx, sy, p.overlay and fixed or taken, screen, fixed)
             add(p, Hud.Position(id, p.anchor, x, y, p.w, p.h, screen))
         end
     end

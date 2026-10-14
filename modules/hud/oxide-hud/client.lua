@@ -24,6 +24,25 @@ local function call(fn)
     if ok then return result end
 end
 
+-- Every resource's current SetVisible and KeepVisible hold, kept while the HUD is stopped and
+-- applied again the moment it starts, before any character has loaded.
+local hiddenBy = {} -- resource -> true while it holds the HUD hidden
+local keptBy = {}   -- resource -> true while it keeps the HUD up through NUI focus
+
+local function caller()
+    return GetInvokingResource() or GetCurrentResourceName()
+end
+
+AddEventHandler('onClientResourceStart', function(resource)
+    if resource ~= RESOURCE then return end
+    for owner in pairs(hiddenBy) do call(function() return res:SetHiddenBy(owner, true) end) end
+    for owner in pairs(keptBy) do call(function() return res:SetKeepVisible(owner, true) end) end
+end)
+
+AddEventHandler('onClientResourceStop', function(resource)
+    hiddenBy[resource], keptBy[resource] = nil, nil
+end)
+
 olink._register('hud', {
     ---@return string
     GetResourceName = function()
@@ -61,22 +80,24 @@ olink._register('hud', {
     end,
 
     ---Hide or show the HUD for the calling resource. The HUD stays hidden while any resource
-    ---holds it hidden, and a resource's hold ends when it stops.
+    ---holds it hidden, and a resource's hold ends when it stops. A hold outlasts a HUD restart.
     ---@param visible boolean
     ---@return boolean
     SetVisible = function(visible)
+        local owner = caller()
+        hiddenBy[owner] = not visible or nil
         if not isStarted() then return default('SetVisible', false, visible) end
-        local owner = GetInvokingResource() or GetCurrentResourceName()
         return call(function() return res:SetHiddenBy(owner, not visible) end) and true or false
     end,
 
     ---Keep the HUD up while the calling resource holds NUI focus that is not a menu (a chat input,
-    ---a remote used while driving). Ends when the resource stops.
+    ---a remote used while driving). Ends when the resource stops; outlasts a HUD restart.
     ---@param keep boolean
     ---@return boolean
     KeepVisible = function(keep)
+        local owner = caller()
+        keptBy[owner] = keep and true or nil
         if not isStarted() then return default('KeepVisible', false, keep) end
-        local owner = GetInvokingResource() or GetCurrentResourceName()
         return call(function() return res:SetKeepVisible(owner, keep and true or false) end) and true or false
     end,
 

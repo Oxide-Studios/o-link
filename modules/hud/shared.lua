@@ -125,15 +125,20 @@ function Hud.SafeOffset(anchor, safe)
     return x, y
 end
 
----Place a panel clear of `obstacles`. It starts at `x`, `y` and moves away from its
----anchor's edge (down for top and centre rows, up for the bottom row) past every rect it
----overlaps, then is kept on screen.
----@param obstacles table[] rects to keep clear of
----@return number x, number y
-function Hud.Place(anchor, w, h, x, y, obstacles, screen)
-    local axes = AXES[anchor] or AXES['top-left']
-    local up = axes[2] == 'end'
-    local rect = Hud.Clamp(Hud.Rect(anchor, x, y, w, h, screen), screen)
+-- A panel's own half of the screen: a top-row panel starts above the middle, a bottom-row one
+-- ends below it; a middle-row panel may sit anywhere.
+local function inHalf(rect, row, screen)
+    if row == 'start' then return rect.y <= screen.h / 2 end
+    if row == 'end' then return rect.y + rect.h >= screen.h / 2 end
+    return true
+end
+
+-- Move `start` away from the anchor's edge (down for top and centre rows, up for the bottom
+-- row) past every rect it overlaps. nil when that leaves the screen, or the panel's half when
+-- `halfOnly` (a panel centred on the top or bottom edge, kept out of the middle of the view).
+local function slide(start, row, obstacles, screen, halfOnly)
+    local up = row == 'end'
+    local rect = { x = start.x, y = start.y, w = start.w, h = start.h }
     for _ = 1, #obstacles + 1 do
         local hit
         for _, other in ipairs(obstacles) do
@@ -147,13 +152,86 @@ function Hud.Place(anchor, w, h, x, y, obstacles, screen)
                 end
             end
         end
-        if not hit then break end
-        rect.y = up and hit.y - Hud.GAP - h or hit.y + hit.h + Hud.GAP
-        if rect.y < 0 or rect.y + h > screen.h then
-            rect = Hud.Clamp(rect, screen)
-            break
+        if not hit then return rect end
+        rect.y = up and hit.y - Hud.GAP - rect.h or hit.y + hit.h + Hud.GAP
+        if rect.y < 0 or rect.y + rect.h > screen.h or (halfOnly and not inHalf(rect, row, screen)) then return nil end
+    end
+    return nil
+end
+
+-- How much of `rects` the rect covers, of the ones marked essential and of the rest, in quarters
+-- of its own area: a sliver more or less is not worth moving away from its spot for.
+local function covered(rect, rects)
+    local essential, other = 0, 0
+    for _, r in ipairs(rects) do
+        local w = math.min(rect.x + rect.w, r.x + r.w) - math.max(rect.x, r.x)
+        local h = math.min(rect.y + rect.h, r.y + r.h) - math.max(rect.y, r.y)
+        if w > 0 and h > 0 then
+            if r.essential then essential = essential + w * h else other = other + w * h end
         end
     end
+    local area = rect.w * rect.h
+    return math.floor(essential / area * 4 + 0.5), math.floor(other / area * 4 + 0.5)
+end
+
+-- a sorts before b: its first entry that differs is smaller.
+local function lower(a, b)
+    for i = 1, #a do
+        if a[i] ~= b[i] then return a[i] < b[i] end
+    end
+    return false
+end
+
+-- The spot in `start`'s column and half, clear of `fixed`, that covers the least of the essential
+-- rects in `obstacles`, then the least of the rest; on a tie the one nearest `start`. Tried at the
+-- screen's edges, at the middle and against each obstacle's edges, with and without the gap. nil
+-- when no such spot is clear of `fixed`.
+local function leastCovered(start, row, obstacles, fixed, screen)
+    local half = screen.h / 2
+    local ys = { start.y, 0, screen.h - start.h, half, half - start.h }
+    for _, o in ipairs(obstacles) do
+        ys[#ys + 1] = o.y + o.h
+        ys[#ys + 1] = o.y + o.h + Hud.GAP
+        ys[#ys + 1] = o.y - start.h
+        ys[#ys + 1] = o.y - Hud.GAP - start.h
+    end
+    local best
+    for _, y in ipairs(ys) do
+        local rect = { x = start.x, y = y, w = start.w, h = start.h }
+        local usable = y >= 0 and y + start.h <= screen.h and (y == start.y or inHalf(rect, row, screen))
+        if usable then
+            for _, f in ipairs(fixed) do
+                if Hud.Overlaps(rect, f) then
+                    usable = false
+                    break
+                end
+            end
+        end
+        if usable then
+            local essential, other = covered(rect, obstacles)
+            local cost = { essential, other, round(math.abs(y - start.y)), y }
+            if not best or lower(cost, best.cost) then best = { rect = rect, cost = cost } end
+        end
+    end
+    return best and best.rect
+end
+
+---Place a panel. It starts at `x`, `y` (kept on screen) and takes the first of: the nearest
+---spot away from its anchor's edge clear of every rect in `obstacles` (on its half of the
+---screen for the top and bottom anchors); when there is none, the spot on its half, clear of
+---`fixed` (the HUD's own parts), that covers the least of the rest (rects marked `essential`
+---last); when even `fixed` leaves no room there, the start itself. It is never clamped onto
+---whatever sits at the column's far end.
+---@param obstacles table[] rects to keep clear of
+---@param fixed? table[] the rects among them nothing may cover; defaults to `obstacles`
+---@return number x, number y
+function Hud.Place(anchor, w, h, x, y, obstacles, screen, fixed)
+    local axes = AXES[anchor] or AXES['top-left']
+    local row = axes[2]
+    local start = Hud.Clamp(Hud.Rect(anchor, x, y, w, h, screen), screen)
+    local rect = slide(start, row, obstacles, screen, axes[1] == 'middle')
+        or leastCovered(start, row, obstacles, fixed or obstacles, screen)
+        or start
     return Hud.Offset(anchor, rect, screen)
 end
 

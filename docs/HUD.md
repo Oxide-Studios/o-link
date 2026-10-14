@@ -91,7 +91,7 @@ Only `id` and `label` are required.
 | `label` | required | The panel's name in the HUD editor. Pass translated text |
 | `anchor` | `'top-left'` | The point the panel is pinned to: `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` |
 | `size` | `{ w = 20, h = 10 }` | The panel's size in vh. The HUD keeps this much space free for it, and the editor draws its box this size |
-| `offset` | none | `{ x, y }` in vh: where your page draws the panel today, measured in from the anchor's edges. The HUD starts there and moves the panel only as far as it must. Without it, the HUD finds a free spot |
+| `offset` | none | `{ x, y }` in vh: where your page draws the panel today, measured in from the anchor's edges. The HUD starts there and moves the panel only as far as it must ([Where the HUD puts your panel](#where-the-hud-puts-your-panel)). Without it, the HUD finds a free spot |
 | `shareSpot` | none | A [shared spot](#shared-spots) name |
 | `overlay` | `false` | `true` for a panel that only shows briefly (a prompt, a tutorial card): it keeps clear of the HUD, but other panels do not move for it |
 | `essential` | `false` | `true` for a panel the player must not miss (a downed card, alerts): it can be hidden in the editor but never switched off in game |
@@ -103,6 +103,34 @@ Only `id` and `label` are required.
 **Anchors.** The anchor you register never changes, wherever the player drags the panel; only the distances change. On a centred anchor (`top`, `bottom`, `left`, `right`, `center`) the distance is measured from the centre line to the middle of the panel, so centre your element on it, for example with `transform: translateX(-50%)` for `top` and `bottom`. `style` never sets `transform`, so your own transforms and transitions keep working.
 
 Calling `AddPanel` again with the same `id` replaces the panel and sends its state again. `olink.hud.RemovePanel(id)` removes it. Panels are removed when your resource stops.
+
+## Where the HUD puts your panel
+
+Oxide HUD starts your panel at its `offset` and moves it away from its anchor's edge (down for the top and middle rows, up for the bottom row) to the first spot clear of the HUD's own parts and of the panels placed before it. A panel on the `top` or `bottom` anchor only looks on its own half of the screen, so it never ends up in the middle of the player's view.
+
+When the column is full, it never lands on the vehicle cluster, the minimap or the compass, and it is never pushed to the far edge of the screen. It takes the spot on its own half of the screen, clear of the HUD, that covers the least of the other panels, and it covers essential panels only when every spot would. If not even the HUD leaves room there (a panel taller than the space above the vehicle cluster), it stays at its `offset`.
+
+Panels claim their spots in the same order every session: essential panels first, then the one whose `offset` is nearest its anchor's edge, then by `id`. A panel the player dragged stays exactly where they put it.
+
+What this means for your panel:
+
+- Give the `offset` you want, nearest the edge first: a panel asking to sit 2 vh from the edge is placed before one asking for 12.
+- Mark `essential` only for what the player must not miss. Essential panels get their spots first and are covered last.
+- Mark anything that shows briefly as `overlay`. Overlays take no space, so they never push your other panels or anyone else's.
+- Register the size your panel draws at. A box larger than the panel takes room other panels could use.
+
+### Default spots at the bottom centre
+
+Many resources draw near the bottom centre. Start a short-lived panel in the lane for its kind, so the default layout does not stack them on each other (vh up from the bottom, at 1080p):
+
+| Lane | From | Height | Used by |
+|------|------|--------|---------|
+| Control hints | 3 to 3.5 | up to 5.5 | the `controls-hint` shared spot |
+| Progress bar | 10.4 | 3 | the progress bar (112 px up, 32 px tall) |
+| Downed card | 8 | 11.1 | the EMS downed card (120 px tall) |
+| Prompt | 20.5 | 4.3 | `oxide-helptext`'s bottom-centre box |
+
+`offset` is where the HUD starts your panel. It is usually where your page draws it without a HUD; a panel whose own spot is in another lane can start in its lane with a HUD and keep its own spot without one, as `oxide-helptext` does.
 
 ## Shared spots
 
@@ -202,6 +230,7 @@ end
 - While any resource keeps the HUD up, NUI focus does not hide it. The pause menu, death and full-screen views still do.
 - While any resource holds the HUD hidden, it stays hidden; other resources' panels hide with it (the `external` reason).
 - Both end by themselves if your resource stops.
+- Both outlast a HUD restart. o-link remembers every resource's current `SetVisible(false)` and `KeepVisible(true)`, also while the HUD is stopped, and applies them again the moment Oxide HUD starts (`onClientResourceStart`), before any character has loaded, so a hold made at character select is back straight away. You do not need to call either again on `olink:client:hud:ready`; doing so is harmless.
 - One of each per resource: if two of your views can be open at once, call `KeepVisible(false)` or `SetVisible(true)` only when the last one closes.
 
 ## Without a HUD, and on older o-link
@@ -246,3 +275,7 @@ end
 ## Reference
 
 - `oxide-postaljob`: `client/modules/hud.lua` (two panels, a shared spot) and `web/src/stores/hud.js` (the page side, previews, the accent). Its shift menu takes NUI focus, so it needs no HUD call.
+- `oxide-chat`: `client/hud.lua` (a size that follows the player's chat settings, `KeepVisible` around its input).
+- `oxide-dispatch`: `web/src/stores/hud.js` (a stack that grows inside its box, up or down from where the HUD puts it).
+- `oxide-gangs`: `client/modules/hud.lua` (a bar drawn with natives from `panel.position`).
+- `oxide-helptext`: `client/hud.lua` (a resource that starts before o-link, and a box that starts in its lane with a HUD).

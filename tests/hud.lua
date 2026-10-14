@@ -112,9 +112,21 @@ Near(py, 26, 'placement moves below the lowest overlapping rect')
 -- The bottom row moves up.
 local _, by = Hud.Place('bottom-left', 20, 10, 2, 2, { { x = 0, y = 70, w = 40, h = 30 } }, screen)
 Near(by, 31, 'bottom panels move up past the rect')
--- A full column keeps the panel on screen.
+-- A full column: clear of the fixed rects over the others, else where it asked to be, never
+-- clamped onto the far edge.
 local _, fy = Hud.Place('top-left', 20, 10, 2, 2, { { x = 0, y = 0, w = 40, h = 99 } }, screen)
-Near(fy, 90, 'a full column clamps to the bottom edge')
+Near(fy, 2, 'a full column keeps the start')
+local corner = { x = 0, y = 0, w = 45, h = 28 }
+local _, oy = Hud.Place('top-left', 20, 10, 2, 2, { corner, { x = 0, y = 29, w = 40, h = 70 } }, screen, { corner })
+Near(oy, 28, 'no room: clear of the fixed rect, covering the least of the panel below it')
+local cluster = { x = 140, y = 70, w = 35, h = 28 }
+local _, ty = Hud.Place('top-right', 30, 16.5, 3, 1, { { x = 140, y = 0, w = 40, h = 20 }, { x = 140, y = 36, w = 40, h = 34 }, cluster }, screen, { cluster })
+Near(ty, 18.5, 'squeezed in: a sliver over a panel instead of a whole one')
+local alerts = { x = 140, y = 0, w = 40, h = 5, essential = true }
+local _, ay = Hud.Place('top-right', 30, 20, 3, 1, { alerts, { x = 140, y = 15, w = 40, h = 54 }, cluster }, screen, { cluster })
+Near(ay, 5, 'essential rects are covered last')
+local _, ly = Hud.Place('bottom-right', 30, 10, 3, 2, { cluster, { x = 140, y = 5, w = 35, h = 65 } }, screen, { cluster })
+Near(ly, 30, 'a bottom-row panel stays on the bottom half')
 local good = Hud.Normalize({ id = 'res:panel', label = 'Panel' }, 'res')
 assert(good and good.anchor == 'top-left' and good.w == 20 and good.h == 10 and good.resource == 'res' and good.x == nil, 'defaults')
 for what, def in pairs({
@@ -266,6 +278,46 @@ assert(hidden[2] == false, 'SetVisible(true) releases it')
 assert(olink.hud.KeepVisible(true) == true and kept[1] == 'oxide-fire' and kept[2] == true, 'KeepVisible(true) keeps the HUD up for the caller')
 olink.hud.KeepVisible(false)
 assert(kept[2] == false, 'KeepVisible(false) lets focus hide it again')
+
+-- Holds outlast a HUD restart: o-link applies them again as soon as the HUD starts, before any
+-- character loads, and forgets a resource's holds when that resource stops.
+local applied = {}
+local function Applied()
+    local list = {}
+    for _, a in ipairs(applied) do list[#list + 1] = table.concat(a, ':') end
+    table.sort(list)
+    applied = {}
+    return table.concat(list, ' ')
+end
+local setHiddenBy, setKeepVisible = hudExports.SetHiddenBy, hudExports.SetKeepVisible
+olink.hud.SetVisible(false)
+olink.hud.KeepVisible(true)
+invoker = 'oxide-chat'
+olink.hud.KeepVisible(true)
+olink.hud.KeepVisible(false)
+states['oxide-hud'] = 'stopped'
+Fire('onClientResourceStop', 'oxide-hud')
+invoker = 'oxide-police'
+local callsBefore = #calls
+assert(olink.hud.SetVisible(false) == false and #calls == callsBefore, 'a hold asked for while the HUD is stopped is only remembered')
+hudExports.SetHiddenBy = function(owner, value) applied[#applied + 1] = { 'hide', owner, tostring(value) } return true end
+hudExports.SetKeepVisible = function(owner, value) applied[#applied + 1] = { 'keep', owner, tostring(value) } return true end
+states['oxide-hud'] = 'started'
+Fire('onClientResourceStart', 'oxide-hud')
+assert(Applied() == 'hide:oxide-fire:true hide:oxide-police:true keep:oxide-fire:true', 'every current hold is applied again when the HUD starts')
+Fire('onClientResourceStart', 'oxide-chat')
+assert(Applied() == '', 'another resource starting applies nothing')
+Fire('onClientResourceStop', 'oxide-police')
+Fire('onClientResourceStart', 'oxide-hud')
+assert(Applied() == 'hide:oxide-fire:true keep:oxide-fire:true', 'a stopped resource holds nothing')
+invoker = 'oxide-fire'
+olink.hud.SetVisible(true)
+olink.hud.KeepVisible(false)
+applied = {}
+Fire('onClientResourceStart', 'oxide-hud')
+assert(Applied() == '', 'released holds are not applied again')
+hudExports.SetHiddenBy, hudExports.SetKeepVisible = setHiddenBy, setKeepVisible
+
 local v, r = olink.hud.IsVisible()
 assert(v == false and r == 'pause', 'visibility and reason')
 assert(olink.hud.GetReservedAreas().measured == true, 'areas from the HUD')
