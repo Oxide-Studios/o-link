@@ -159,8 +159,9 @@ local function slide(start, row, obstacles, screen, halfOnly)
     return nil
 end
 
--- How much of `rects` the rect covers, of the ones marked essential and of the rest, in quarters
--- of its own area: a sliver more or less is not worth moving away from its spot for.
+-- What the rect covers of `rects`: 1 when it covers any rect marked essential, how much of those,
+-- and how much of the rest. Amounts are in quarters of its own area: a sliver more or less is not
+-- worth moving away from its spot for.
 local function covered(rect, rects)
     local essential, other = 0, 0
     for _, r in ipairs(rects) do
@@ -171,7 +172,7 @@ local function covered(rect, rects)
         end
     end
     local area = rect.w * rect.h
-    return math.floor(essential / area * 4 + 0.5), math.floor(other / area * 4 + 0.5)
+    return essential > 0.01 and 1 or 0, math.floor(essential / area * 4 + 0.5), math.floor(other / area * 4 + 0.5)
 end
 
 -- a sorts before b: its first entry that differs is smaller.
@@ -208,8 +209,8 @@ local function leastCovered(start, row, obstacles, fixed, screen)
             end
         end
         if usable then
-            local essential, other = covered(rect, obstacles)
-            local cost = { essential, other, round(math.abs(y - start.y)), y }
+            local anyEssential, essential, other = covered(rect, obstacles)
+            local cost = { anyEssential, essential, other, round(math.abs(y - start.y)), y }
             if not best or lower(cost, best.cost) then best = { rect = rect, cost = cost } end
         end
     end
