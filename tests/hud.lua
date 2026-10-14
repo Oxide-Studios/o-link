@@ -157,6 +157,7 @@ local right = olink.hud.RegisterWidget({ id = 'auto:right', label = 'Right', anc
 Near(right.y, 65, 'the top-right estimate and the fixed fire panel are both cleared')
 
 assert(olink.hud.SetVisible(false) == false, 'nothing to hide')
+assert(olink.hud.KeepVisible(true) == false, 'nothing to keep up')
 local visible, reason = olink.hud.IsVisible()
 assert(visible == true and reason == nil, 'always visible')
 assert(olink.hud.GetTheme() == nil, 'no server accent without a HUD')
@@ -230,13 +231,15 @@ local fb = olink.hud.RegisterWidget({ id = 'p', label = 'P', anchor = 'top-right
 assert(fb and fb.x == 3 and fb.y == 4, 'fallback registration')
 assert(olink.hud.GetReservedAreas().measured == false, 'fallback areas')
 assert(olink.hud.SetVisible(false) == false and olink.hud.IsVisible() == true, 'fallback visibility')
+assert(olink.hud.KeepVisible(true) == false, 'fallback keep')
 assert(olink.hud.GetTheme() == nil, 'fallback theme')
 assert(#calls == 0, 'no export is called while oxide-hud is stopped')
 
 -- oxide-hud running.
 Load({ ['oxide-hud'] = 'started' })
-local registered, hidden
+local registered, hidden, kept
 hudExports = {
+    SetKeepVisible = function(owner, value) kept = { owner, value } return true end,
     RegisterPanel = function(def) registered = def return { id = def.id, anchor = def.anchor, x = 1, y = 2 } end,
     UnregisterPanel = function() return true end,
     GetPanelPosition = function(id) return id == 'known' and { id = id } or nil end,
@@ -260,6 +263,9 @@ assert(olink.hud.GetWidgetPosition('known').id == 'known' and olink.hud.GetWidge
 assert(olink.hud.SetVisible(false) == true and hidden[1] == 'oxide-fire' and hidden[2] == true, 'SetVisible(false) holds the HUD hidden for the caller')
 olink.hud.SetVisible(true)
 assert(hidden[2] == false, 'SetVisible(true) releases it')
+assert(olink.hud.KeepVisible(true) == true and kept[1] == 'oxide-fire' and kept[2] == true, 'KeepVisible(true) keeps the HUD up for the caller')
+olink.hud.KeepVisible(false)
+assert(kept[2] == false, 'KeepVisible(false) lets focus hide it again')
 local v, r = olink.hud.IsVisible()
 assert(v == false and r == 'pause', 'visibility and reason')
 assert(olink.hud.GetReservedAreas().measured == true, 'areas from the HUD')
@@ -476,6 +482,7 @@ assert(provider == '_default' and olink.hud.GetResourceName() == '_default', 'fo
 Load({}, { Hud = 'oxide-hud' })
 assert(Provider() == nil and olink.hud.GetResourceName() == 'none', 'forced oxide-hud while missing leaves the stubs')
 assert(olink.hud.RegisterWidget({ id = 'x', label = 'x' }) == false and olink.hud.IsVisible() == true, 'stub defaults')
+assert(olink.hud.KeepVisible(true) == false, 'stub keep')
 assert(type(olink.hud.GetReservedAreas().areas) == 'table', 'stub areas')
 assert(olink.hud.GetTheme() == nil, 'stub theme')
 local stubbed = {}

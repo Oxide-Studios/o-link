@@ -70,6 +70,16 @@ olink._register('hud', {
         return call(function() return res:SetHiddenBy(owner, not visible) end) and true or false
     end,
 
+    ---Keep the HUD up while the calling resource holds NUI focus that is not a menu (a chat input,
+    ---a remote used while driving). Ends when the resource stops.
+    ---@param keep boolean
+    ---@return boolean
+    KeepVisible = function(keep)
+        if not isStarted() then return default('KeepVisible', false, keep) end
+        local owner = GetInvokingResource() or GetCurrentResourceName()
+        return call(function() return res:SetKeepVisible(owner, keep and true or false) end) and true or false
+    end,
+
     ---@return boolean visible, string|nil reason
     IsVisible = function()
         if not isStarted() then return default('IsVisible', true) end

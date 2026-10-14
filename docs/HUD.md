@@ -139,12 +139,13 @@ const drawSample = !jobRunning && panel.preview
 | Reason | When |
 |--------|------|
 | `unloaded` | No character: character select, after logout |
-| `external` | A resource hides the HUD for a full-screen view or a cutscene ([Full-screen views](#full-screen-views)) |
+| `external` | A resource hides the HUD for a full-screen view or a cutscene ([Menus, inputs and full-screen views](#menus-inputs-and-full-screen-views)) |
 | `pause` | The pause menu is open |
 | `dead` | The player is dead or downed |
 | `phone` | The phone is open |
+| `focus` | A menu or another NUI page has focus (a shop, an inventory) |
 
-The default follows the first four. A downed card leaves out `dead` (`hideWith = { 'external', 'pause' }`); a panel that must always show uses `hideWith = false`. NUI focus on its own (the chat input, a remote held while driving) never hides the HUD.
+The default follows the first four, so your panel stays up while a menu is open over it. A downed card leaves out `dead` (`hideWith = { 'external', 'pause' }`); a panel that should also hide behind menus adds `'focus'`; a panel that must always show uses `hideWith = false`.
 
 ## The server accent
 
@@ -166,27 +167,42 @@ timer.style.setProperty('--my-accent', accent)   // CSS: background: var(--my-ac
 
 Give server owners a switch, on by default, and pass it on: `accent = Config.UseHudAccent ~= false`.
 
-## Full-screen views
+## Menus, inputs and full-screen views
 
-A menu or camera view that covers the game (a shop, a computer, a character creator, a job menu) hides the HUD while it is open:
+The HUD hides while any NUI page has focus, so most resources need nothing here:
+
+| What your resource shows | What to do |
+|--------------------------|------------|
+| A menu that takes NUI focus (a shop, a computer, a job menu) | Nothing. The HUD hides while it has focus |
+| An input that takes NUI focus while the player keeps playing (a chat input, a remote used while driving) | `KeepVisible(true)` when it takes focus, `KeepVisible(false)` when it lets go |
+| A full-screen view without NUI focus (a bodycam, CCTV, a dashcam, a camera scene) | `SetVisible(false)` when it opens, `SetVisible(true)` on every path that closes it |
 
 ```lua
-local function openMenu()
-    SetNuiFocus(true, true)
+-- A chat input: focus, but not a menu.
+local function openInput()
+    SetNuiFocus(true, false)
+    if olink.hud then olink.hud.KeepVisible(true) end
+end
+
+local function closeInput()
+    SetNuiFocus(false, false)
+    if olink.hud then olink.hud.KeepVisible(false) end
+end
+
+-- A camera view without focus. Every way it closes ends here: the key, death, logout.
+local function startBodycam()
     if olink.hud then olink.hud.SetVisible(false) end
 end
 
--- Every way the view closes ends here: the close button, Escape, death, logout.
-local function closeMenu()
-    SetNuiFocus(false, false)
+local function stopBodycam()
     if olink.hud then olink.hud.SetVisible(true) end
 end
 ```
 
-- The HUD stays hidden while any resource holds it hidden, and comes back when the last one lets go.
-- Your hold ends by itself if your resource stops.
-- One hold per resource: if two of your views can be open at once, call `SetVisible(true)` only when the last one closes.
-- Other resources' panels hide with it (the `external` reason).
+- While any resource keeps the HUD up, NUI focus does not hide it. The pause menu, death and full-screen views still do.
+- While any resource holds the HUD hidden, it stays hidden; other resources' panels hide with it (the `external` reason).
+- Both end by themselves if your resource stops.
+- One of each per resource: if two of your views can be open at once, call `KeepVisible(false)` or `SetVisible(true)` only when the last one closes.
 
 ## Without a HUD, and on older o-link
 
@@ -229,4 +245,4 @@ end
 
 ## Reference
 
-- `oxide-postaljob`: `client/modules/hud.lua` (two panels, a shared spot, full-screen views) and `web/src/stores/hud.js` (the page side, previews, the accent).
+- `oxide-postaljob`: `client/modules/hud.lua` (two panels, a shared spot) and `web/src/stores/hud.js` (the page side, previews, the accent). Its shift menu takes NUI focus, so it needs no HUD call.

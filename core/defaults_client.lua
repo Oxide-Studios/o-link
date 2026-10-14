@@ -343,13 +343,14 @@ stub('tablet', {
 stub('hud', {
     'GetResourceName',
     'RegisterWidget', 'UnregisterWidget', 'GetWidgetPosition',
-    'SetVisible', 'IsVisible', 'GetReservedAreas', 'GetTheme',
+    'SetVisible', 'KeepVisible', 'IsVisible', 'GetReservedAreas', 'GetTheme',
     'AddPanel', 'RemovePanel',
 }, {
     GetResourceName = 'none',
     RegisterWidget = false,
     UnregisterWidget = false,
     SetVisible = false,
+    KeepVisible = false,
     AddPanel = false,
     RemovePanel = false,
     IsVisible = true,
