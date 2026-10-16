@@ -311,6 +311,12 @@ SetBag('seatbelt', false)
 SetBag('seatbelt', false)
 belts = Emitted('olink:client:seatbeltChanged')
 assert(#belts == 2 and belts[1][1] == true and belts[2][1] == false, 'qbx bag changes relay once each')
+SetBag('harness', true)
+assert(olink.seatbelt.IsOn() == true, 'a qbx harness counts as buckled')
+SetBag('seatbelt', false)
+SetBag('harness', false)
+belts = Emitted('olink:client:seatbeltChanged')
+assert(#belts == 4 and belts[3][1] == true and belts[4][1] == false, 'the harness relays, and only its own changes')
 
 -- voice ---------------------------------------------------------------------------------------
 natives = { connected = 1, talking = false, proximity = 12.5 }
