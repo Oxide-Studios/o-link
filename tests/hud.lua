@@ -518,6 +518,12 @@ for _, fn in ipairs(stopHandlers) do fn('oxide-hud') end
 s = got[#got]
 assert(#got == count + 1 and s.hosted == false and s.style.top == '' and s.style.left == '' and s.theme == nil and s.position == nil, 'unhosted when the HUD stops')
 assert(tutorial[#tutorial].hosted == false, 'every panel')
+-- A restarted HUD reporting a layout before it has the panels again: nothing comes back early.
+states['oxide-hud'] = 'started'
+Fire('olink:client:hud:layoutChanged', {})
+assert(got[#got].hosted == false and tutorial[#tutorial].hosted == false, 'no old positions before the HUD has the panels again')
+Fire('olink:client:hud:ready')
+assert(got[#got].hosted == true and tutorial[#tutorial].hosted == true, 'hosted once the HUD has them')
 -- And the resource stopping: nothing more is sent to it.
 states['oxide-hud'] = 'started'
 count = #got

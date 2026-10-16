@@ -202,11 +202,14 @@ AddEventHandler('olink:client:hud:themeChanged', function(theme)
     pushAll()
 end)
 
--- The HUD stopping: every panel goes back to its own page's position.
+-- The HUD stopping: every panel goes back to its own page's position. Its positions are dropped,
+-- so a restarted HUD that reports a layout before it has the panels again cannot bring them back.
 local function checkHosted()
     if not state.hosted then return end
     readHud()
-    if not state.hosted then pushAll() end
+    if state.hosted then return end
+    positions = {}
+    pushAll()
 end
 
 AddEventHandler('onClientResourceStop', function(resource)
