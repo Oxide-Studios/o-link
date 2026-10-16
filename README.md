@@ -57,7 +57,12 @@ ensure oxide-shops
 
 When the server starts, o-link checks for a newer version and prints a notice in the server console. With `Config.AutoDownloadUpdates = true` in `config.lua` it downloads the new files itself; they apply on the next full server restart.
 
-The automatic download cannot create new folders. When a release adds folders (1.12.0 adds 14), it prints `this release must be installed manually` and changes nothing. To install it by hand:
+The automatic download cannot create new folders. When a release adds folders, it prints `this release must be installed manually` and changes nothing.
+
+- **On 1.12.0 or newer:** 1.12.1 adds no folders, so the automatic download applies it. Without `AutoDownloadUpdates`, install it by hand as below.
+- **On 1.11.0 or older:** 1.12.0 added 14 folders, so install by hand once. That takes you straight to the latest version.
+
+To install by hand:
 
 1. Download the latest version: on [github.com/Oxide-Studios/o-link](https://github.com/Oxide-Studios/o-link), click **Code**, then **Download ZIP**.
 2. Stop your server.
