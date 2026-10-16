@@ -49,7 +49,7 @@ olink.supports('vehicleproperties.GetVehicleProperties')
 ### Server
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `GetName()` | | `string` | Framework name: `'oxide-core'`, `'qb-core'`, `'qbx_core'`, or `'es_extended'` |
+| `GetName()` | | `string` | Framework name: `'qb-core'`, `'qbx_core'`, or `'es_extended'` |
 | `GetIsPlayerLoaded(src)` | `src: number` | `boolean` | Whether the player currently has an active character/session |
 | `GetPlayers()` | | `number[]` | Online player source IDs |
 | `GetJobs()` | | `table[]` | Framework jobs list. Oxide currently returns `{}`. |
@@ -91,7 +91,7 @@ olink.supports('vehicleproperties.GetVehicleProperties')
 
 ## Module: multichar (server + client)
 
-Character lifecycle (list/create/select/delete) for a framework-agnostic multicharacter resource. The provider is the framework core (`oxide-core`, `qbx_core`, `qb-core`, or `es_extended`). When no provider is installed the defaults return empty results.
+Character lifecycle (list/create/select/delete) for a framework-agnostic multicharacter resource. The provider is the framework core (`qbx_core`, `qb-core`, or `es_extended`). When no provider is installed the defaults return empty results.
 
 ### Server
 | Function | Args | Returns | Description |
@@ -111,7 +111,7 @@ Character lifecycle (list/create/select/delete) for a framework-agnostic multich
 
 The client adapter bridges the framework's native "show character selection" trigger to a unified `olink:client:startCharacterSelect` event (fired on boot and after `Logout`).
 
-`OnboardNewCharacter` is the single onboarding seam — it folds together apartment selection (QBX `apartments:client:setupSpawnUI`, QB `qb-spawn:client:setupSpawns`), default-spawn selection, and first-character clothing (`qb-clothes:client:CreateFirstCharacter`) per framework. The oxide-core adapter currently just calls `olink.clothing.StartCreation` since Oxide has no housing/spawn resources yet; when those land, slot them in ahead of the clothing call and the multichar resource itself stays untouched.
+`OnboardNewCharacter` is the single onboarding seam — it folds together apartment selection (QBX `apartments:client:setupSpawnUI`, QB `qb-spawn:client:setupSpawns`), default-spawn selection, and first-character clothing (`qb-clothes:client:CreateFirstCharacter`) per framework.
 
 ## Module: job (server + client)
 
@@ -171,14 +171,14 @@ Sources: QB and QBX read `PlayerData.money` (QB `QBCore:Player:UpdatePlayerDataF
 
 ## Module: needs (server + client)
 
-Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stress.
+Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stress, so on ESX it reads `nil` and cannot be set, on the server and the client, unless the server registers a `stress` status.
 
 ### Server
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `GetNeed(src, needType)` | `src: number, needType: 'hunger'\|'thirst'\|'stress'` | `number\|nil` | Current value |
-| `SetNeed(src, needType, value)` | `src: number, needType: string, value: number` | `boolean` | Set a need (clamped 0-100) |
-| `ModifyNeed(src, needType, amount)` | `src: number, needType: string, amount: number` | `boolean` | Add or subtract from a need |
+| `GetNeed(src, needType)` | `src: number, needType: 'hunger'\|'thirst'\|'stress'` | `number\|nil` | Current value; `nil` when the provider doesn't track it (ESX stress) |
+| `SetNeed(src, needType, value)` | `src: number, needType: string, value: number` | `boolean` | Set a need (clamped 0-100); `false` when the provider doesn't track it |
+| `ModifyNeed(src, needType, amount)` | `src: number, needType: string, amount: number` | `boolean` | Add or subtract from a need; `false` when the provider doesn't track it |
 
 ### Client
 | Function | Args | Returns | Description |
@@ -195,7 +195,7 @@ Sources: QB reads `PlayerData.metadata` (`hud:client:UpdateNeeds` / `UpdateStres
 
 ## Module: license (server only)
 
-Licenses are bool flags keyed by license type (`'driver'`, `'weapon'`, `'business'`, etc.). The bridge does not validate type names — the consumer (e.g. oxide-police) owns the type catalogue. On QB/QBX/Oxide, types are arbitrary strings stored in player metadata. On ESX, types must exist in the `licenses` table (`esx_license`) for ESX-aware UIs to label them; the bridge will still write rows for unknown types but server owners should seed the table for consistency.
+Licenses are bool flags keyed by license type (`'driver'`, `'weapon'`, `'business'`, etc.). The bridge does not validate type names — the consumer (e.g. oxide-police) owns the type catalogue. On QB and QBX, types are arbitrary strings stored in player metadata. On ESX, types must exist in the `licenses` table (`esx_license`) for ESX-aware UIs to label them; the bridge will still write rows for unknown types but server owners should seed the table for consistency.
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
@@ -209,12 +209,11 @@ Licenses are bool flags keyed by license type (`'driver'`, `'weapon'`, `'busines
 | `RevokeOffline(identifier, type)` | `identifier: string, type: string` | `boolean` | Revoke the license from an offline character |
 | `GetAllOffline(identifier)` | `identifier: string` | `table` | All licenses for an offline character |
 
-`identifier` matches `character.GetIdentifier(src)` — citizenid on QB/QBX, ESX identifier on es_extended, state_id (or numeric char_id) on oxide-core.
+`identifier` matches `character.GetIdentifier(src)` — citizenid on QB/QBX, ESX identifier on es_extended.
 
 Storage:
 - **qb-core / qbx_core** — `players.metadata.licences` (British spelling) as `{ [type]=bool }`.
 - **es_extended** — rows in `user_licenses` keyed by player identifier.
-- **oxide-core** — `characters.metadata.licenses` as `{ [type]=bool }`.
 
 ## Module: inventory (server + client)
 
@@ -254,7 +253,7 @@ Storage:
 | `OpenShop(src, shopId)` / `RegisterShop(...)` | | `boolean` | Shop passthrough |
 
 **Trunk support is not universal.** `AddTrunkItems` / `GetTrunkItems` are real on
-`ox_inventory`, `oxide-inventory`, `qb-inventory`, `ak47_qb_inventory` and (add only)
+`ox_inventory`, `qb-inventory`, `ak47_qb_inventory` and (add only)
 `tgiann-inventory` and `origen_inventory`; everything else returns `false` / `{}`. See
 [SUPPORT-MATRIX.md](SUPPORT-MATRIX.md#inventoryaddtrunkitems). Gate on the **return value** —
 `olink.supports()` cannot be used here, because the fallback stub is itself callable.
@@ -278,39 +277,24 @@ Item entries accept either key spelling: `item` or `name`, and `count` or `amoun
 
 ## Module: vehicles (server only)
 
-Provided by `oxide-vehicles` adapter at [`../modules/vehicles/oxide-vehicles/server.lua`](../modules/vehicles/oxide-vehicles/server.lua) (registered immediately at o-link load; wrappers gate on resource state at call time). Generic helpers `IsOwnedBy` / `GetOwnedPlates` come from [`../modules/vehicles/server.lua`](../modules/vehicles/server.lua).
+Providers: `qbx_vehicles` (Qbox), `qb-garages` (QBCore) and `esx_vehicleshop` (ESX). Generic helpers `IsOwnedBy` / `GetOwnedPlates` come from [`../modules/vehicles/server.lua`](../modules/vehicles/server.lua). Keys and locks are in [vehiclekey](#module-vehiclekey-client-only), shared job and gang vehicles in `vehicleOwnership`.
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `GetResourceName()` |  | `string` | Active provider, e.g. `'oxide-vehicles'` |
 | `SearchByPlate(plate, limit?)` | `plate: string, limit?: number` | `table[]` | Fuzzy plate search joined with owner record |
 | `GetByPlate(plate)` | `plate: string` | `table\|nil` | Vehicle record + owner fields (`charId`, `ownerFirst`, `ownerStateId`, etc.) |
-| `GetByOwner(identifier)` | `identifier: string` (stateId or charId) | `table[]` | Vehicles for an owner |
+| `GetByOwner(identifier)` | `identifier: string` (the owner's `character.GetIdentifier`) | `table[]` | Vehicles for an owner |
 | `IsOwnedBy(src, plate)` | `src: number, plate: string` | `boolean` | Whether the plate belongs to the calling player |
 | `GetOwnedPlates(src)` | `src: number` | `string[]` | Plates owned by the calling player |
 | `GeneratePlate()` |  | `string` | Generate a unique plate per resource conventions |
 | `RegisterVehicle(charId, model, plate, props?, type?)` | | `boolean` | Insert an owned vehicle row |
 | `UnregisterVehicle(plate)` | `plate: string` | `boolean` | Delete an owned vehicle row |
-| `GetVehicleOwner(plate)` | `plate: string` | `number\|nil` | Owner charId for a plate |
-| `GetOwnedVehicles(charId)` | `charId: number` | `table[]` | All owned vehicles for a charId |
-| `GetVehicleByPlate(plate)` | `plate: string` | `table\|nil` | Raw vehicle row (does NOT join characters) |
-| `TransferOwnership(plate, newCharId)` | | `boolean` | Reassign owned vehicle to a new charId |
-| `GiveKey(charId, plate, model?)` | | `boolean` | Grant key (item or session) for plate |
-| `RemoveKey(charId, plate)` | | `boolean` | Revoke key for plate |
-| `HasKey(charId, plate)` | | `boolean` | Whether the player has a key |
-| `GetKeysForPlayer(charId)` | | `table[]` | All keys held by the player |
-| `IsVehicleLocked(plate)` | | `boolean` | Vehicle locked state |
-| `SetVehicleLocked(plate, locked)` | | `boolean` | Lock/unlock and sync to entity |
 | `ImpoundVehicle(plate, fee?, lot?)` | | `boolean` | Impound the vehicle |
 | `ReleaseImpound(plate)` | | `boolean` | Release from impound (admin/no-fee) |
 | `GetImpoundedVehicles(charId, lot?)` | `charId: string\|number, lot?: string` | `table[]` | List vehicles in impound owned by `charId`, optionally filtered to `lot`. Each row: `{ id, plate, model, vehicleType, fee, props, lot }`. `fee = nil` means the framework has no fee column — caller must apply its own fee policy. |
 | `RetrieveImpounded(src, vehicleId, lot?)` | `src: number, vehicleId: number\|string, lot?: string` | `boolean, errorReason?` | Validate ownership, deduct any framework-native fee, flip state out of impound. Caller spawns the vehicle from `props` returned by the prior `GetImpoundedVehicles` call. When the framework has no fee column (ESX), the bridge skips fee deduction and the caller is responsible. |
 | `GetVehicleState(plate)` | | `any` | Internal state snapshot |
 | `SaveVehicleProps(plate, propsJson)` | | `boolean` | Persist serialized properties |
-| `RepairVehicle(plate)` | | `boolean` | Mark vehicle fully repaired |
-| `AddSharedVehicle(groupType, groupName, model, plate, type?, garage?)` | | `boolean` | Add a job/gang shared vehicle |
-| `RemoveSharedVehicle(plate)` | | `boolean` | Remove a shared vehicle |
-| `GetSharedVehicles(groupType, groupName)` | | `table[]` | List shared vehicles for a group |
 
 ## Module: vehicleproperties (client only)
 
@@ -954,14 +938,14 @@ Report about once a second while the player breathes the hazard. The stub return
 
 **Clothing helpers (server, adapter-dependent)**
 
-Functions common across `esx_skin`, `qb-clothing`, `fivem-appearance`, `illenium-appearance`, `rcore_clothing`, `oxide-clothing`, `oxide-identity`:
+Functions common across `esx_skin`, `qb-clothing`, `fivem-appearance`, `illenium-appearance`, `rcore_clothing`, `oxide-clothing`:
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
 | `GetAppearance(src, fullData?)` | `src: number, fullData?: boolean` | `table\|nil` | Converted skin data, or full data when `fullData` is true |
 | `GetOfflineAppearance(charId)` | `charId: number\|string` | `table\|nil` | Appearance snapshot keyed by character id, shaped for `SetAppearance(ped, data)` — used to dress multichar preview peds |
 | `SetAppearance(src, data, updateBackup?, save?)` | | `table\|nil` | Apply appearance and (optionally) persist to DB |
-| `SaveCreatorAppearance(src, data, save?)` | `src: number, data: table` | `boolean` | Persist a full look from a built-in creator (face + clothing + tattoos). `data` is the native-indexed canonical shape (features 0-19, overlays 0-12 with 1-based style, components/props maps). Implemented by `oxide-identity`, `illenium-appearance`, `qb-clothing`, `fivem-appearance`; returns `false` on backends that can't store it (e.g. `esx_skin`) so callers can fall back |
+| `SaveCreatorAppearance(src, data, save?)` | `src: number, data: table` | `boolean` | Persist a full look from a built-in creator (face + clothing + tattoos). `data` is the native-indexed canonical shape (features 0-19, overlays 0-12 with 1-based style, components/props maps). Implemented by `illenium-appearance`, `qb-clothing`, `fivem-appearance`; returns `false` on backends that can't store it (e.g. `esx_skin`) so callers can fall back |
 | `SetAppearanceExt(src, data)` | | `nil` | Apply gender-specific data (`{ male = ..., female = ... }`) |
 | `Revert(src)` | `src: number` | `table\|nil` | Restore previous backup appearance |
 | `OpenMenu(src)` | `src: number` | `nil` | Open the adapter's clothing menu for the player |
@@ -1049,7 +1033,7 @@ Categories are free-form strings; the Discord sink uses them to choose a webhook
 | `IsPlayerDowned()` | | `boolean` | Local player is in the downed/laststand state |
 | `IsPlayerDead()` | | `boolean` | Local player is fully dead |
 | `GetDeathState()` | | `table\|nil` | Provider-shaped death state snapshot |
-| `SetSuppressed(value)` | `value: boolean` | `boolean` | Suspend/resume the provider's local death detection while a tool manipulates the player ped (e.g. the scene director possessing an actor swaps the player model mid-session). Returns `true` only when the provider honoured it — currently oxide-death only; every other provider returns `false`, so callers must keep their own backstop (invincibility) regardless |
+| `SetSuppressed(value)` | `value: boolean` | `boolean` | Suspend/resume the provider's local death detection while a tool manipulates the player ped (e.g. the scene director possessing an actor swaps the player model mid-session). Returns `true` only when the death provider honoured it. The QBCore, Qbox and ESX providers return `false`, so callers must keep their own backstop (invincibility) regardless |
 
 ## Death lifecycle events
 
@@ -1084,7 +1068,6 @@ data = {
 ### Per-framework caveats
 
 - **ESX (`es_extended`)** — no native downed/laststand concept; `playerDowned` never fires. Death payload includes `attacker`, `weapon`, `cause`, `coords` from `esx:onPlayerDeath`. `playerRespawned` is not emitted (ESX does not distinguish revive from respawn).
-- **QB-Core (`qb-core`)** — payloads are empty `{}` on death/downed/revive transitions because `hospital:server:SetDeathStatus` and `hospital:server:SetLaststandStatus` carry no killer info. Source-of-truth is metadata `isdead` / `inlaststand` (no statebag); the client relay reads it from `QBCore:Player:UpdatePlayerDataField` (current qb-core) and `QBCore:Player:SetPlayerData` (older builds). On the client, `alive` after `downed` is relayed half a second late, so a bleed-out (last stand cleared, then `isdead` set) goes straight from `downed` to `dead`. `playerRespawned` is not emitted.
+- **QB-Core (`qb-core`)** — payloads are empty `{}` on death/downed/revive transitions because `hospital:server:SetDeathStatus` and `hospital:server:SetLaststandStatus` carry no killer info. Source-of-truth is metadata `isdead` / `inlaststand` (no statebag); the client relay reads it from `QBCore:Player:UpdatePlayerDataField` (current qb-core) and `QBCore:Player:SetPlayerData` (older builds). The server relay hears `hospital:server:SetDeathStatus` / `SetLaststandStatus` only as a cue: it never trusts their argument, reads the sender's own metadata once the event's handlers have run, and accepts at most 20 of them per player in 10 seconds. On both sides, `alive` after `downed` is relayed half a second late, so a bleed-out (last stand cleared, then `isdead` set) goes straight from `downed` to `dead`. `playerRespawned` is not emitted.
 - **QBX (`qbx_core`)** — death/downed payloads include `attacker` and `weapon`. `playerRespawned` is not emitted (qbx_medical reports respawn as a revive).
-- **oxide-death** — emits all five events including `playerRespawned`. Payloads include `cause` (causeOfDeath) and `coords`.
 - **`_default` fallback** — when no supported framework or medical resource is detected, a 500ms client poll on `IsPedDeadOrDying` emits `playerDied` / `playerRevived` only (no downed, no payload).

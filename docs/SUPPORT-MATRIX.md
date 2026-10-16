@@ -9,14 +9,14 @@ It lists implementation folders that exist today. It does not guarantee every im
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
 | `callback` | shared | built-in shared module |
-| `framework` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
-| `character` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
-| `multichar` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
-| `job` | server + client | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
-| `money` | server + client | `es_extended`, `oxide-accounts`, `qb-core`, `qbx_core` (client also `_default`) |
-| `license` | server | `es_extended`, `oxide-core`, `qb-core`, `qbx_core` |
-| `inventory` | server + client | `ak47_qb_inventory`, `codem-inventory`, `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `oxide-inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
-| `vehicles` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
+| `framework` | server + client | `es_extended`, `qb-core`, `qbx_core` |
+| `character` | server + client | `es_extended`, `qb-core`, `qbx_core` |
+| `multichar` | server + client | `es_extended`, `qb-core`, `qbx_core` |
+| `job` | server + client | `es_extended`, `qb-core`, `qbx_core` |
+| `money` | server + client | `es_extended`, `qb-core`, `qbx_core` (client also `_default`) |
+| `license` | server | `es_extended`, `qb-core`, `qbx_core` |
+| `inventory` | server + client | `ak47_qb_inventory`, `codem-inventory`, `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
+| `vehicles` | server | `esx_vehicleshop`, `qb-garages`, `qbx_vehicles` |
 | `vehicleproperties` | client | `modules/vehicles/properties` |
 | `entity` | server + client | built-in framework-agnostic module |
 | `map` | server + client + NUI | built-in shared atlas, mode settings and coordinate helpers |
@@ -31,7 +31,6 @@ default stub is itself callable and would report the namespace as available.
 | Adapter | Write | Read | Container |
 |---------|-------|------|-----------|
 | `ox_inventory` | yes | yes | native trunk `trunk<plate>`, resolved from the vehicle entity |
-| `oxide-inventory` | yes | yes | native vehicle storage (`vehicle_storages` / `vehicle_storage_items`) |
 | `qb-inventory` | yes | yes | `trunk-<plate>` (v2 `CreateInventory`, v1 `inventory:server:addTrunkItems`) |
 | `ak47_qb_inventory` | yes | yes | `trunk-<plate>` |
 | `origen_inventory` | yes | yes | stash `trunk_<plate>` |
@@ -66,7 +65,7 @@ Item entries accept either key spelling: `name` or `item`, and `count` or `amoun
 
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
-| `notify` | server + client | `brutal_notify`, `confirm`, `fl-notify`, `lation_ui`, `mythic_notify`, `okokNotify`, `oxide-core`, `oxide-notify`, `ox_lib`, `pNotify`, `r_notify`, `t-notify`, `wasabi_notify`, `zsxui` |
+| `notify` | server + client | `brutal_notify`, `confirm`, `fl-notify`, `lation_ui`, `mythic_notify`, `okokNotify`, `oxide-notify`, `ox_lib`, `pNotify`, `r_notify`, `t-notify`, `wasabi_notify`, `zsxui` |
 | `helptext` | server + client | server relay plus `cd_drawtextui`, `jg-textui`, `lab-HintUI`, `lation_ui`, `okokTextUI`, `oxide-helptext`, `ox_lib`, `zsxui`. Only `oxide-helptext` stacks prompts and keeps them per resource; the others show one at a time and receive structured prompts flattened to text |
 | `target` | client | `oxide-target`, `ox_target`, `qb-target`, `sleepless_interact`, `tgiann-target` |
 | `progressbar` | client | `esx_progressbar`, `keep-progressbar`, `lation_ui`, `oxide-progressbar`, `ox_lib`, `qb-progressbar`, `wasabi_uikit`, `zsxui` |
@@ -91,16 +90,16 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 
 | Namespace | Side | Implementation folders |
 |-----------|------|------------------------|
-| `fuel` | client | `_default` (GTA's own fuel level), `bigDaddy-Fuel`, `cdn-fuel`, `esx-sna-fuel`, `lc_fuel`, `legacyfuel`, `okokGasStation`, `oxide-vehicles`, `ox_fuel`, `ps-fuel`, `qb-fuel`, `qs-fuelstations`, `renewed-Fuel`, `ti_fuel`, `x-fuel` |
+| `fuel` | client | `_default` (GTA's own fuel level), `bigDaddy-Fuel`, `cdn-fuel`, `esx-sna-fuel`, `lc_fuel`, `legacyfuel`, `okokGasStation`, `ox_fuel`, `ps-fuel`, `qb-fuel`, `qs-fuelstations`, `renewed-Fuel`, `ti_fuel`, `x-fuel` |
 | `weather` | client; server v2 with `oxide-weather` | `_default`, `cd_easytime`, `night_natural_disasters`, `oxide-weather`, `qb-weathersync`, `renewed-weathersync` |
-| `vehiclekey` | client | `cd_garage`, `f_realcarkeyssystem`, `jacksam`, `mk_vehiclekeys`, `mrnewbvehiclekeys`, `mVehicle`, `okokGarage`, `oxide-vehicles`, `qb-vehiclekeys`, `qbx_vehiclekeys`, `qs-vehiclekeys`, `renewed-vehiclekeys`, `t1ger_keys`, `wasabi_carlock` |
-| `vehicleOwnership` | server | `esx_vehicleshop`, `oxide-vehicles`, `qb-garages`, `qbx_vehicles` |
-| `death` | server + client | `_default`, `es_extended`, `oxide-death`, `qb-core`, `qbx_core` (all emit `olink:*:playerDied/Downed/Revived/Respawned/playerDeathStateChanged` — see API.md for per-provider caveats; client `SetSuppressed` is honoured by `oxide-death` only, stub `false` elsewhere) |
+| `vehiclekey` | client | `cd_garage`, `f_realcarkeyssystem`, `jacksam`, `mk_vehiclekeys`, `mrnewbvehiclekeys`, `mVehicle`, `okokGarage`, `qb-vehiclekeys`, `qbx_vehiclekeys`, `qs-vehiclekeys`, `renewed-vehiclekeys`, `t1ger_keys`, `wasabi_carlock` |
+| `vehicleOwnership` | server | `esx_vehicleshop`, `qb-garages`, `qbx_vehicles` |
+| `death` | server + client | `_default`, `es_extended`, `qb-core`, `qbx_core` (all emit `olink:*:playerDied/Downed/Revived/playerDeathStateChanged` — see API.md for per-provider caveats; client `SetSuppressed` returns `false` on all of them) |
 | `medical` | server + client | `oxide-medical` |
-| `needs` | server + client | `es_extended`, `oxide-needs`, `qb-core`, `qbx_core` (client also `_default`) |
-| `seatbelt` | client | `_default`, `oxide-vehicles`, `qb-smallresources`, `qbx_seatbelt` |
+| `needs` | server + client | `es_extended`, `qb-core`, `qbx_core` (client also `_default`; ESX has no stress unless a `stress` status is registered) |
+| `seatbelt` | client | `_default`, `qb-smallresources`, `qbx_seatbelt` |
 | `voice` | client | `_default` (built-in voice), `pma-voice`, `saltychat` |
-| `gang` | server + client | `es_extended`, `oxide-core`, `oxide-gangs`, `qb-core`, `qbx_core` |
+| `gang` | server + client | `es_extended`, `oxide-gangs`, `qb-core`, `qbx_core` |
 
 ## Economy, Services, and World
 
@@ -108,7 +107,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 |-----------|------|------------------------|
 | `banking` | server | `fd_banking`, `kartik-banking`, `okokBanking`, `oxide-banking`, `qb-banking`, `renewed-banking`, `tgg-banking`, `tgiann-bank`, `wasabi_banking` |
 | `phone` | server + client | `_default`, `gksphone`, `lb-phone`, `okokPhone`, `oxide-phone`, `qb-phone`, `qs-smartphone` (V3 + Lite), `qs-smartphone-pro`, `yseries` (per-function support below) |
-| `clothing` | shared + server + client | `esx_skin`, `fivem-appearance`, `illenium-appearance`, `oxide-clothing`, `oxide-identity`, `qb-clothing`, `rcore_clothing` |
+| `clothing` | shared + server + client | `esx_skin`, `fivem-appearance`, `illenium-appearance`, `oxide-clothing`, `qb-clothing`, `rcore_clothing` |
 | `dispatch` | server + client | `_default`, `bub-mdt`, `cd_dispatch`, `emergencydispatch`, `fd_dispatch`, `kartik-mdt`, `lb-tablet`, `linden_outlawalert`, `origen_police`, `oxide-dispatch`, `piotreq_gpt`, `ps-dispatch`, `qs_dispatch`, `redutzu-mdt`, `tk_dispatch`, `wasabi_mdt` |
 | `doorlock` | server + client | `doors_creator`, `ox_doorlock`, `qb-doorlock`, `rcore_doorlock` |
 | `housing` | server + client | `bcs-housing`, `esx_property`, `ps-housing`, `qb-apartments` (+ `qb-houses`), `qbx_properties` |
@@ -139,7 +138,6 @@ The app-host functions (`RegisterApp`, `Open`, `Notify` and the rest) are implem
 
 | Framework | Files |
 |-----------|-------|
-| `oxide-core` | `lifecycle/oxide-core/server.lua`, `lifecycle/oxide-core/client.lua` |
 | `qb-core` | `lifecycle/qb-core/server.lua`, `lifecycle/qb-core/client.lua` |
 | `qbx_core` | `lifecycle/qbx_core/server.lua`, `lifecycle/qbx_core/client.lua` |
 | `es_extended` | `lifecycle/es_extended/server.lua`, `lifecycle/es_extended/client.lua` |

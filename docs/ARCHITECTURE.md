@@ -8,7 +8,7 @@
 olink = exports['o-link']:olink()
 ```
 
-The current resource targets Oxide, QBCore, QBX, and ESX-related ecosystems, plus a large number of inventory, notify, dispatch, phone, housing, clothing, and utility resources.
+The current resource targets the QBCore, Qbox and ESX ecosystems, plus a large number of inventory, notify, dispatch, phone, housing, clothing, and utility resources.
 
 ## Core Pattern
 
@@ -65,7 +65,7 @@ end
 
 ## Circular Provider/Consumer Pattern
 
-A "circular" resource declares `o-link` in its `dependencies { ... }` AND provides an o-link namespace (today: `oxide-vehicles`, `oxide-dispatch`, `oxide-banking`, `oxide-tablet`, `oxide-phone`, `oxide-gangs`, `oxide-medical`, `oxide-logger`, `oxide-hud`).
+A "circular" resource declares `o-link` in its `dependencies { ... }` AND provides an o-link namespace (today: `oxide-dispatch`, `oxide-banking`, `oxide-tablet`, `oxide-phone`, `oxide-gangs`, `oxide-medical`, `oxide-logger`, `oxide-hud`).
 
 ### The cross-VM snapshot trap
 
@@ -73,7 +73,7 @@ Each FiveM resource has its own Lua VM. When consumers run `olink = exports['o-l
 
 This rules out two patterns that look correct but aren't:
 1. **Self-registration in the consumer's own scripts** — runs after o-link, after consumers have already snapshotted, so other consumers hold stub refs forever.
-2. **Deferred registration via `onResourceStart`** — fires when the consumer starts. Any other consumer that snapshotted olink before the deferred handler ran is permanently stale. (oxide-police starts before oxide-vehicles in our boot order, so its snapshot of `olink.vehicles.GetByPlate` would be a stub forever.)
+2. **Deferred registration via `onResourceStart`** — fires when the consumer starts. Any other consumer that snapshotted olink before the deferred handler ran is permanently stale. (A consumer that starts before the provider would keep a stub of the provider's functions forever.)
 
 ### The fix: register immediately
 
@@ -105,7 +105,7 @@ olink._register('<namespace>', {
 }, RESOURCE)
 ```
 
-Worked examples in this codebase: `modules/vehicles/oxide-vehicles/server.lua`, `modules/dispatch/oxide-dispatch/server.lua`, `modules/banking/oxide-banking/server.lua`.
+Worked examples in this codebase: `modules/dispatch/oxide-dispatch/server.lua`, `modules/banking/oxide-banking/server.lua`.
 
 Adapter wrappers MUST call `exports['<resource>']:Fn(...)` only — never reference Lua identifiers from the consumer's file scope (those are nil from o-link's resource scope). Every wrapped function must be a real `exports('Fn', ...)` declared in the consumer.
 
@@ -114,7 +114,7 @@ Every function name registered by an adapter must also be present in `core/defau
 ## What Is Verified Today
 
 - `o-link` uses glob-loaded implementation files, not runtime `load()` or `LoadResourceFile(...)` evaluation for bridge bootstrapping.
-- Lifecycle adapters exist for `oxide-core`, `qb-core`, `qbx_core`, and `es_extended`.
+- Lifecycle adapters exist for `qb-core`, `qbx_core`, and `es_extended`.
 - Loader summaries exist on both server and client.
 - The client loader explicitly tracks `vehicleproperties` as its own namespace even though its file lives under `modules/vehicles/properties/client.lua`.
 - Server-only relay modules exist for `notify` and `helptext`.
@@ -136,7 +136,6 @@ o-link/
 |   |-- known_providers.lua
 |   `-- diag_server.lua
 |-- lifecycle/
-|   |-- oxide-core/
 |   |-- qb-core/
 |   |-- qbx_core/
 |   `-- es_extended/
@@ -227,15 +226,13 @@ Because of that same protection, a customer who updates keeps the `config.lua` t
 Ensure framework/core dependencies first, then `o-link`, then consumers.
 
 ```cfg
-ensure oxide-core
-ensure oxide-inventory
-ensure oxide-accounts
-ensure oxide-vehicles
+ensure ox_lib
+ensure oxmysql
+ensure qb-core          # or qbx_core, or es_extended
+ensure ox_inventory     # and your target, phone, fuel and other scripts
 
 ensure o-link
 
 ensure oxide-police
 ensure oxide-shops
 ```
-
-The Oxide Core adapters (`oxide-inventory`, `oxide-death`, `oxide-identity`) only register when their resource is already started as o-link loads, so those resources start before o-link and never list it in their dependencies. `oxide-accounts` and `oxide-needs` guard on `oxide-core` instead; the `oxide-needs` server adapter also checks oxide-needs when each call is made, so it works whether oxide-needs starts before or after o-link.
