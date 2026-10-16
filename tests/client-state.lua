@@ -45,6 +45,13 @@ TriggerEvent = function(name, ...)
 end
 CreateThread = function(fn) threads[#threads + 1] = coroutine.create(fn) end
 Wait = function(ms) coroutine.yield(ms) end
+local timers = {}
+SetTimeout = function(_, fn) timers[#timers + 1] = fn end
+local function RunTimers()
+    local due = timers
+    timers = {}
+    for _, fn in ipairs(due) do fn() end
+end
 
 local function Net(name, ...) for _, fn in ipairs(netHandlers[name] or {}) do fn(...) end end
 local function Local(name, ...) for _, fn in ipairs(handlers[name] or {}) do fn(...) end end
@@ -368,6 +375,24 @@ Net('QBCore:Player:UpdatePlayerDataField', 'metadata', { inlaststand = false, is
 Net('QBCore:Player:SetPlayerData', { metadata = { inlaststand = false, isdead = false } })
 local deaths = Emitted('olink:client:playerDeathStateChanged')
 assert(#deaths == 3 and deaths[1][1] == 'downed' and deaths[2][1] == 'dead' and deaths[3][1] == 'alive', 'field pushes and full pushes both relay')
+
+-- Bleeding out: qb-ambulancejob clears last stand, then sets isdead. No 'alive' in between.
+Load({ ['qb-core'] = 'started' }, { 'modules/death/qb-core/client.lua' })
+Net('QBCore:Player:UpdatePlayerDataField', 'metadata', { inlaststand = true, isdead = false })
+Net('QBCore:Player:UpdatePlayerDataField', 'metadata', { inlaststand = false, isdead = false })
+Net('QBCore:Player:UpdatePlayerDataField', 'metadata', { inlaststand = false, isdead = true })
+RunTimers()
+deaths = Emitted('olink:client:playerDeathStateChanged')
+assert(#deaths == 2 and deaths[2][1] == 'dead' and deaths[2][2] == 'downed', 'a bleed-out goes from downed to dead')
+
+-- A revive from downed still arrives, once the pushes settle.
+Load({ ['qb-core'] = 'started' }, { 'modules/death/qb-core/client.lua' })
+Net('QBCore:Player:UpdatePlayerDataField', 'metadata', { inlaststand = true, isdead = false })
+Net('QBCore:Player:UpdatePlayerDataField', 'metadata', { inlaststand = false, isdead = false })
+assert(#Emitted('olink:client:playerDeathStateChanged') == 1, 'alive after downed waits for the pushes to settle')
+RunTimers()
+deaths = Emitted('olink:client:playerDeathStateChanged')
+assert(#deaths == 2 and deaths[2][1] == 'alive' and deaths[2][2] == 'downed', 'a revive from downed relays')
 
 print = rawprint
 print('Client state passed: needs, money, seatbelt, voice providers and the qb-core death relay.')

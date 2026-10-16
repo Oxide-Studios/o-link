@@ -54,11 +54,30 @@ local function transitionTo(newState)
     TriggerEvent('olink:client:playerDeathStateChanged', newState, oldState, {})
 end
 
+-- When a downed player bleeds out, qb-ambulancejob clears last stand and then sets isdead in two
+-- separate pushes, so the 'alive' between them is not real. An 'alive' straight after 'downed'
+-- waits briefly, and any push that arrives meanwhile replaces it.
+local SETTLE_MS = 500
+local pushes = 0
+
+local function onMetadata(meta)
+    pushes = pushes + 1
+    local newState = deriveState(meta)
+    if newState == 'alive' and lastState == 'downed' then
+        local push = pushes
+        SetTimeout(SETTLE_MS, function()
+            if push == pushes then transitionTo('alive') end
+        end)
+        return
+    end
+    transitionTo(newState)
+end
+
 -- Current qb-core pushes metadata edits as a single field; older builds resend the whole PlayerData.
 RegisterNetEvent('QBCore:Player:UpdatePlayerDataField', function(key, value)
-    if key == 'metadata' then transitionTo(deriveState(value)) end
+    if key == 'metadata' then onMetadata(value) end
 end)
 
 RegisterNetEvent('QBCore:Player:SetPlayerData', function(playerData)
-    transitionTo(deriveState(playerData and playerData.metadata))
+    onMetadata(playerData and playerData.metadata)
 end)
