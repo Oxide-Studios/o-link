@@ -131,16 +131,34 @@ local function hideSet(list)
     return set
 end
 
+local REFUSED = {
+    def = 'the definition is not a table',
+    onChange = 'the second argument is not a function',
+    id = 'id must be 1 to 64 characters of A-Z a-z 0-9 _ - . :',
+    label = 'label must be text',
+    anchor = 'anchor must be top-left, top, top-right, left, center, right, bottom-left, bottom or bottom-right',
+    shareSpot = 'shareSpot must be 1 to 64 characters of A-Z a-z 0-9 _ - . :',
+}
+
+local function refuse(resource, def, reason)
+    local id = type(def) == 'table' and def.id or nil
+    print(('^3[o-link] client: olink.hud.AddPanel from %s refused panel %s: %s^0'):format(
+        tostring(resource), type(id) == 'string' and ('%q'):format(id) or tostring(id), REFUSED[reason] or tostring(reason)))
+    return false
+end
+
 ---Register a panel and call `onChange(panel)` now and whenever how to draw it changes.
 ---@param def table { id, label, anchor?, size?, offset?, overlay?, essential?, shareSpot?, hideWith?, accent? }
 ---@param onChange function|table called with { id, hosted, show, preview, style, theme, position }
 ---@return boolean
 local function AddPanel(def, onChange)
+    local own = type(def) == 'table' and type(def.resource) == 'string' and def.resource or nil
+    local resource = own or GetInvokingResource() or GetCurrentResourceName()
+    if type(def) ~= 'table' then return refuse(resource, def, 'def') end
     local kind = type(onChange)
-    if type(def) ~= 'table' or (kind ~= 'function' and kind ~= 'table') then return false end
-    local resource = type(def.resource) == 'string' and def.resource or GetInvokingResource() or GetCurrentResourceName()
-    local clean = Hud.Normalize(def, resource)
-    if not clean then return false end
+    if kind ~= 'function' and kind ~= 'table' then return refuse(resource, def, 'onChange') end
+    local clean, reason = Hud.Normalize(def, resource)
+    if not clean then return refuse(resource, def, reason) end
     local entry = {
         id = clean.id,
         resource = resource,

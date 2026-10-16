@@ -346,7 +346,23 @@ local function Collect(state) got[#got + 1] = state end
 assert(olink.hud.AddPanel(nil, Collect) == false, 'no def')
 assert(olink.hud.AddPanel({ id = 'consumer:timer', label = 'Timer' }) == false, 'no function')
 assert(olink.hud.AddPanel({ id = 'bad id', label = 'Timer' }, Collect) == false, 'a bad def is refused')
+assert(olink.hud.AddPanel({ id = 'consumer:nolabel' }, Collect) == false, 'a panel without a label is refused')
+assert(olink.hud.AddPanel({ id = 'consumer:corner', label = 'Corner', anchor = 'middle' }, Collect) == false, 'a bad anchor is refused')
 assert(#got == 0, 'nothing is called for a refused panel')
+local refusals = {}
+for _, line in ipairs(output) do
+    if line:find('olink.hud.AddPanel from consumer refused panel', 1, true) then refusals[#refusals + 1] = line end
+end
+assert(#refusals == 5, 'one console line per refused panel')
+assert(refusals[1]:find('panel nil: the definition is not a table', 1, true), 'no def names the reason')
+assert(refusals[2]:find('panel "consumer:timer": the second argument is not a function', 1, true), 'no function names the id and reason')
+assert(refusals[3]:find('panel "bad id": id must be', 1, true), 'a bad id names the reason')
+assert(refusals[4]:find('panel "consumer:nolabel": label must be text', 1, true), 'a missing label names the reason')
+assert(refusals[5]:find('panel "consumer:corner": anchor must be', 1, true), 'a bad anchor names the reason')
+local quiet = #output
+assert(olink.hud.AddPanel({ id = 'consumer:ok', label = 'Fine' }, Collect) == true and #output == quiet, 'an accepted panel prints nothing')
+olink.hud.RemovePanel('consumer:ok')
+got = {}
 assert(olink.hud.AddPanel({ id = 'consumer:timer', label = 'Timer', anchor = 'top', offset = { x = 0, y = 3.5 } }, Collect) == true, 'added')
 assert(#got == 1, 'called once straight away')
 local s = got[1]
