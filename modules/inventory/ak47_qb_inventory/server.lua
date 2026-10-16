@@ -9,6 +9,8 @@ local stashes = {}
 local shopData = {}
 
 olink._register('inventory', {
+    -- GetStashItems reads real contents.
+    CanReadStashes = function() return true end,
     ---@param src number
     ---@param item string
     ---@return number

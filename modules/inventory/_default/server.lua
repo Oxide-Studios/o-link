@@ -18,6 +18,8 @@ if not olink._hasOverride('Inventory') and GetResourceState('tgiann-inventory') 
 local stashes = {}
 
 olink._registerDefault('inventory', {
+    -- GetStashItems cannot read contents here, so an empty list proves nothing.
+    CanReadStashes = function() return false end,
     GetResourceName = function() return '_default' end,
     Stashes = stashes,
 

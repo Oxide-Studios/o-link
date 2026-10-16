@@ -123,6 +123,8 @@ local function getItemDefinition(item)
 end
 
 olink._register('inventory', {
+    -- GetStashItems cannot read contents here, so an empty list proves nothing.
+    CanReadStashes = function() return false end,
     ---@return string
     GetResourceName = function()
         return RESOURCE

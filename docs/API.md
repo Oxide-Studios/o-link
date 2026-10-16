@@ -242,6 +242,7 @@ Storage:
 | `RegisterStash(id, label, slots, weight, owner?)` | | `boolean` | Register a stash |
 | `OpenStash(src, stashId)` | | `nil` | Open a stash for a player |
 | `GetStashItems(id)` | `id: string` | `table[]` | Contents of a stash |
+| `CanReadStashes()` | | `boolean` | Whether `GetStashItems` reports a stash's real contents on this inventory: `true` on ox_inventory, oxide-inventory, qb-inventory v2 and ak47_qb_inventory. Everywhere else `GetStashItems` returns `{}` for any stash, so an empty list proves nothing; gate "is it empty?" checks on this |
 | `AddStashItem(id, item, count, metadata?)` | | `boolean` | Add one item to a stash |
 | `AddStashItems(id, items)` | `items: { item, count\|amount, metadata\|info }[]` | `boolean` | Add several |
 | `RemoveStashItem(id, item, count)` | | `boolean` | Remove from a stash |
@@ -661,6 +662,7 @@ The full v2 implementation is `oxide-weather`. Other providers keep their existi
 | `GetSetting(key)` | Server | Copy of saved configuration; restart-only edits may differ from current simulation settings |
 | `SetSetting(key, value, actor?)` | Server | Validates and persists an editable setting; uses the standard original-resource allowlist and optional admin actor gate. Settings marked for restart remain staged |
 | `GetWeatherData()` | Client | Current player's server-resolved weather/forecast data; yields through the bridge callback |
+| `HoldLocalWeather(weather?)`, `ReleaseLocalWeather()` | Client | Shows `weather` (a weather type name, `EXTRASUNNY` by default) to this player only, and keeps it until released: for a walk-in space that is not a real interior. Under every provider and none: the provider's sync is paused and the clock and its minute length are put back, so time of day keeps running (every provider's own `ToggleSync(false)` moves the clock). A dry weather type also stops the rain. Holds belong to the calling resource, are released when it stops, and the newest hold's weather shows. `false` for an unknown weather type |
 | `GetWeatherData(zone?)` | Server | Existing global or regional data contract |
 | `GetWeatherAlerts(zone?)`, `GenerateWeazelReport(zone?, options?)` | Server | Phase 6 alert/report read APIs through the bridge |
 

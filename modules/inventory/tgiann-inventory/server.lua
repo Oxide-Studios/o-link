@@ -5,6 +5,8 @@ local tgiann = exports['tgiann-inventory']
 local stashes = {}
 
 olink._register('inventory', {
+    -- GetStashItems cannot read contents here, so an empty list proves nothing.
+    CanReadStashes = function() return false end,
     ---@param src number
     ---@param item string
     ---@return number

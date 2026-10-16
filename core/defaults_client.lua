@@ -84,7 +84,7 @@ stub('fuel', {
 })
 
 stub('weather', {
-    'GetResourceName', 'GetApiVersion', 'ToggleSync', 'IsReady', 'GetWeather', 'GetTime', 'IsBlackout', 'GetForecast', 'GetCurrentZone', 'GetWind', 'GetSeason', 'GetTemperature', 'GetTemperatureAt', 'GetSnowLevel', 'GetSnowLevelAt', 'GetFronts', 'GetCurrentFront', 'IsSyncEnabled', 'GetConditionsAt', 'GetWindAt', 'IsRainingAt', 'IsSnowOnGround', 'IsCovered', 'GetExposureAt', 'RegisterExposureEntity', 'UnregisterExposureEntity', 'GetWeatherData', 'IsTimeFrozen', 'GetRoadConditionsAt',
+    'GetResourceName', 'GetApiVersion', 'ToggleSync', 'IsReady', 'GetWeather', 'GetTime', 'IsBlackout', 'GetForecast', 'GetCurrentZone', 'GetWind', 'GetSeason', 'GetTemperature', 'GetTemperatureAt', 'GetSnowLevel', 'GetSnowLevelAt', 'GetFronts', 'GetCurrentFront', 'IsSyncEnabled', 'GetConditionsAt', 'GetWindAt', 'IsRainingAt', 'IsSnowOnGround', 'IsCovered', 'GetExposureAt', 'RegisterExposureEntity', 'UnregisterExposureEntity', 'GetWeatherData', 'IsTimeFrozen', 'GetRoadConditionsAt', 'HoldLocalWeather', 'ReleaseLocalWeather',
 }, {
     GetResourceName = 'none',
     GetApiVersion = 0,
@@ -92,6 +92,8 @@ stub('weather', {
     GetWeather = 'CLEAR',
     ToggleSync = false,
     IsReady = false,
+    HoldLocalWeather = false,
+    ReleaseLocalWeather = false,
 })
 
 stub('map', {

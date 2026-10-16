@@ -17,6 +17,8 @@ end
 local v2 = isV2()
 
 olink._register('inventory', {
+    -- GetStashItems reads real contents on v2 only.
+    CanReadStashes = function() return v2 end,
     ---@param src number
     ---@param item string
     ---@return number
