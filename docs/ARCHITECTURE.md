@@ -212,7 +212,7 @@ The same key governs `core/catalogue_check.lua`, which covers every *other* Oxid
 
 Because of that same protection, a customer who updates keeps the `config.lua` they first installed with and is missing every key added since. Two things follow, and both are required of any new config surface: every key must default in code, and `core/loader_server.lua` prints a one-time console notice naming the keys their `config.lua` lacks. The notice is one plain informational line, not a warning, because most updated installs will see it. `Config.ImageBaseUrl` is excluded from that notice because it ships as `nil`, so absent and present are indistinguishable.
 
-`Config.AutoDownloadUpdates` (default `false`) downloads a detected update and writes it over o-link's own files; the new files take effect on the next full server restart. It has no effect unless `Config.CheckForUpdates` is also true.
+`Config.AutoDownloadUpdates` (default `false`) downloads a detected update and writes it over o-link's own files; the new files take effect on the next full server restart. It has no effect unless `Config.CheckForUpdates` is also true. It cannot create folders: new files are written first, so a release that adds a folder fails before any file in use changes, and the console says to install it manually (the README's Updating section).
 
 `Config.ImageBaseUrl` (default `nil`) sets the base URL that `olink.inventory.GetImagePath` resolves item images against.
 

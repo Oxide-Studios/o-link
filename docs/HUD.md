@@ -13,6 +13,20 @@ Your page keeps drawing the panel. It only applies the placement o-link sends it
 
 ## Your first panel
 
+**`fxmanifest.lua`**
+
+```lua
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
+
+client_script 'client.lua'
+ui_page 'web/index.html'
+files { 'web/index.html' }
+
+dependency 'o-link'
+```
+
 **`client.lua`**
 
 ```lua
@@ -24,10 +38,11 @@ RegisterNUICallback('pageReady', function(_, cb)
     if not (olink.hud and olink.hud.AddPanel) then return end -- an o-link without HUD support
 
     olink.hud.AddPanel({
-        id = 'my-job:timer',      -- unique: start it with your resource name
-        label = 'My job: timer',  -- shown on the panel in the /hud editor
-        anchor = 'top-right',     -- the corner or edge the panel is pinned to
-        size = { w = 24, h = 8 }, -- in vh: percent of the screen height
+        id = 'my-job:timer',       -- unique: start it with your resource name
+        label = 'My job: timer',   -- shown on the panel in the /hud editor
+        anchor = 'top-right',      -- the corner or edge the panel is pinned to
+        size = { w = 24, h = 8 },  -- in vh: percent of the screen height
+        offset = { x = 3, y = 4 }, -- where the page draws it without a HUD, in vh from the anchor
     }, function(panel)
         SendNUIMessage({ action = 'hudPanel', panel = panel })
     end)
@@ -79,7 +94,7 @@ In a Vue page the same two fields bind directly: `<div v-if="active && panel.sho
 | `preview` | boolean | `true` while the HUD editor is open and shows this panel. Draw sample content if nothing real is up ([Previews in /hud](#previews-in-hud)) |
 | `style` | table | CSS for the panel's root element: `left`, `right`, `top`, `bottom` and `opacity`, as strings. Apply all of them every time. Empty strings hand the position back to your stylesheet |
 | `theme` | table or nil | The server's accent colours ([The server accent](#the-server-accent)). `nil` keeps your own colours |
-| `position` | table or nil | The raw placement in vh (`anchor`, `x`, `y`, `left`, `top`, `w`, `h`), for panels drawn from Lua instead of a page. `nil` while not hosted |
+| `position` | table or nil | The raw placement in vh (`id`, `anchor`, `x`, `y`, `left`, `top`, `w`, `h`, `moved`, and `hidden` / `hiddenBy` while it is hidden), for panels drawn from Lua instead of a page. `nil` while not hosted |
 
 ## The options
 
@@ -90,19 +105,19 @@ Only `id` and `label` are required.
 | `id` | required | 1 to 64 characters of `A-Z a-z 0-9 _ - . :`. Start it with your resource name |
 | `label` | required | The panel's name in the HUD editor. Pass translated text |
 | `anchor` | `'top-left'` | The point the panel is pinned to: `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` |
-| `size` | `{ w = 20, h = 10 }` | The panel's size in vh. The HUD keeps this much space free for it, and the editor draws its box this size |
+| `size` | `{ w = 20, h = 10 }` | The panel's size in vh, at most 400 x 100. The HUD keeps this much space free for it, and the editor draws its box this size |
 | `offset` | none | `{ x, y }` in vh: where your page draws the panel today, measured in from the anchor's edges. The HUD starts there and moves the panel only as far as it must ([Where the HUD puts your panel](#where-the-hud-puts-your-panel)). Without it, the HUD finds a free spot |
 | `shareSpot` | none | A [shared spot](#shared-spots) name |
 | `overlay` | `false` | `true` for a panel that only shows briefly (a prompt, a tutorial card): it keeps clear of the HUD, but other panels do not move for it |
 | `essential` | `false` | `true` for a panel the player must not miss (a downed card, alerts): it can be hidden in the editor but never switched off in game |
-| `hideWith` | `{ 'unloaded', 'external', 'pause', 'dead' }` | The HUD hide reasons this panel follows. `false` never hides with the HUD |
+| `hideWith` | `{ 'unloaded', 'external', 'pause', 'dead' }` | The HUD hide reasons this panel follows, as a list. `false` never hides with the HUD; any other value uses the default |
 | `accent` | `true` | `false` never sends `theme`. Give server owners a config switch for it |
 
 **Units.** Every size and offset is in **vh**, percent of the screen height, so a panel keeps its place at every resolution. 3 vh is 32 px at 1080p. If your panel is sized in pixels, convert at registration: `local _, height = GetActiveScreenResolution()`, then `w = 300 * 100 / height`.
 
 **Anchors.** The anchor you register never changes, wherever the player drags the panel; only the distances change. On a centred anchor (`top`, `bottom`, `left`, `right`, `center`) the distance is measured from the centre line to the middle of the panel, so centre your element on it, for example with `transform: translateX(-50%)` for `top` and `bottom`. `style` never sets `transform`, so your own transforms and transitions keep working.
 
-Calling `AddPanel` again with the same `id` replaces the panel and sends its state again. `olink.hud.RemovePanel(id)` removes it. Panels are removed when your resource stops.
+Calling `AddPanel` again with the same `id` replaces the panel and sends its state again. `olink.hud.RemovePanel(id)` removes it; your function is not called again after that, so hide the panel or put it back in its own spot yourself. Panels are removed when your resource stops.
 
 ## Where the HUD puts your panel
 
@@ -187,6 +202,7 @@ The default follows the first four, so your panel stays up while a menu is open 
 | `light` | Accent-coloured text and highlights |
 | `dark` | Gradient ends, deep fills |
 | `contrast` | Text and icons drawn on a solid `accent` fill |
+| `locked` | `true` when the server owner locked the accent. If your resource lets players pick their own colours, hide that choice while it is `true` |
 
 Replace only your accent. Colours that mean something (green for done, red for late) keep their colours. Put the colours in CSS variables with your own colours as the fallback, so `nil` brings yours back:
 
@@ -247,8 +263,8 @@ if olink.hud then olink.hud.SetVisible(false) end  -- any other olink.hud call
 | Situation | What your panel gets |
 |-----------|----------------------|
 | No HUD installed, or Oxide HUD stopped | One call with `hosted = false`, empty `style`, `show = true`. No more calls until a HUD starts |
-| Oxide HUD starts or restarts later | o-link adds your panel to it and calls your function again. Nothing to do on your side |
-| Oxide HUD stops | One call with `hosted = false`: the panel goes back to its own spot and colours |
+| Oxide HUD starts or restarts later | Once the player's character has loaded, o-link adds your panel to it and calls your function again. Nothing to do on your side |
+| Oxide HUD stops | A call with `hosted = false` (sometimes a few while it shuts down): the panel goes back to its own spot and colours |
 | o-link 1.11.0 or older | Nothing. Your guard skips the call |
 
 To test your resource, check each of these:
@@ -275,6 +291,8 @@ end
 `AddPanel` is built on `RegisterWidget`, `IsVisible`, `GetTheme` and the `olink:client:hud:*` events, all listed in [API.md](API.md#module-hud-client-only). Use those only if `AddPanel` does not fit, for example to read `GetReservedAreas()` and lay out several panels yourself.
 
 ## Reference
+
+Oxide resources that use `AddPanel`, one per pattern. `oxide-helptext` is open source on GitHub.
 
 - `oxide-postaljob`: `client/modules/hud.lua` (two panels, a shared spot) and `web/src/stores/hud.js` (the page side, previews, the accent). Its shift menu takes NUI focus, so it needs no HUD call.
 - `oxide-chat`: `client/hud.lua` (a size that follows the player's chat settings, `KeepVisible` around its input).

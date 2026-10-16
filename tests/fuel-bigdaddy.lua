@@ -1,6 +1,6 @@
 -- The BigDaddy fuel adapter under both spellings of its resource name (BigDaddy-Fuel as shipped,
 -- bigDaddy-Fuel renamed), and the _default fallback stepping aside for either.
--- Run from the [oxide] folder: bash oxide-phone/tests/lua.sh o-link tests/fuel-bigdaddy.lua
+-- Run from the o-link folder: lua tests/fuel-bigdaddy.lua
 local rawprint = print
 local states, exportsByResource, calls = {}, {}, {}
 

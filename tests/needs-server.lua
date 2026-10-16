@@ -1,6 +1,6 @@
 -- Server needs on Oxide Core: the oxide-needs adapter loads whether oxide-needs starts before or
 -- after o-link, reads oxide-needs at call time, and stays out of the way on other frameworks.
--- Run from the [oxide] folder: bash oxide-phone/tests/lua.sh o-link tests/needs-server.lua
+-- Run from the o-link folder: lua tests/needs-server.lua
 local rawprint = print
 local output, states, exportsByResource = {}, {}, {}
 

@@ -160,14 +160,14 @@ The client adapter bridges the framework's native "show character selection" tri
 ### Client
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `GetResourceName()` | | `string` | Active provider: `'oxide-accounts'`, `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no framework; every balance reads `0`) |
+| `GetResourceName()` | | `string` | Active provider: `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no framework; every balance reads `0`) |
 | `GetBalance(accountType)` | `accountType: string` | `number` | Local player's balance. `'cash'` and `'bank'` work on every provider (`'money'` is accepted for cash); other names are the framework's own accounts (`'crypto'`, `'black_money'`). `0` when unknown |
 
 | Event | Side | Args | Description |
 |-------|------|------|-------------|
 | `olink:client:moneyChanged` | client | `(accountType, balance)` | A local balance moved. `accountType` is `'cash'` or `'bank'` (ESX `money` is reported as `'cash'`), or the framework's name for any other account it reports. Only accounts that changed fire; the first update after a character loads reports every account |
 
-Sources: Oxide reads the `oxide:cash` / `oxide:bank` player bags, QB and QBX read `PlayerData.money` (QB `QBCore:Player:UpdatePlayerDataField` and `SetPlayerData`, QBX `SetPlayerData`), ESX reads `PlayerData.accounts` (`esx:setAccountMoney`, `esx:playerLoaded`).
+Sources: QB and QBX read `PlayerData.money` (QB `QBCore:Player:UpdatePlayerDataField` and `SetPlayerData`, QBX `SetPlayerData`), ESX reads `PlayerData.accounts` (`esx:setAccountMoney`, `esx:playerLoaded`).
 
 ## Module: needs (server + client)
 
@@ -183,7 +183,7 @@ Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stre
 ### Client
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `GetResourceName()` | | `string` | Active provider: `'oxide-needs'`, `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no needs system) |
+| `GetResourceName()` | | `string` | Active provider: `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no needs system) |
 | `Get(needType)` | `needType: 'hunger'\|'thirst'\|'stress'` | `number\|nil` | Local player's need. `nil` when the provider doesn't track it (ESX stress, `_default`) or hasn't reported yet (ESX before the first `esx_status` tick) |
 | `GetAll()` | | `{ hunger?, thirst?, stress? }` | All three; untracked needs are absent |
 
@@ -191,9 +191,7 @@ Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stre
 |-------|------|------|-------------|
 | `olink:client:needsChanged` | client | `(needs)` | Any need moved. `needs` is the full `{ hunger?, thirst?, stress? }` snapshot after the change |
 
-Sources: Oxide reads the `oxide:metadata` bag, QB reads `PlayerData.metadata` (`hud:client:UpdateNeeds` / `UpdateStress`, `QBCore:Player:UpdatePlayerDataField`, `SetPlayerData`), QBX reads the `hunger` / `thirst` / `stress` player bags, ESX normalizes `esx_status:onTick` (about once a second).
-
-The `oxide-needs` adapter registers on both sides while `oxide-core` is running and `oxide-needs` is installed, so it works whether oxide-needs starts before or after o-link. The server side checks oxide-needs when each call is made: until it is started `GetNeed` returns `nil` and `SetNeed` / `ModifyNeed` return `false`.
+Sources: QB reads `PlayerData.metadata` (`hud:client:UpdateNeeds` / `UpdateStress`, `QBCore:Player:UpdatePlayerDataField`, `SetPlayerData`), QBX reads the `hunger` / `thirst` / `stress` player bags, ESX normalizes `esx_status:onTick` (about once a second).
 
 ## Module: license (server only)
 
@@ -335,7 +333,7 @@ Colors — every color the builders draw comes from a palette, resolved once at 
 
 | Role | Draws | `default` | `colorblind` |
 |------|-------|-----------|--------------|
-| `Marker` | Coord sphere + dot, GhostPed ground ring, GhostScreen quad, Entity outline + markers, Polygon points/edges/fill, screen resize handles, `SetMarkers` color when none is given | 232, 176, 68 (amber) | 240, 228, 66 (yellow) |
+| `Marker` | Coord sphere + dot, GhostPed ground ring, GhostScreen quad, Entity outline, ped ground ring and markers, Polygon points/edges/fill, screen resize handles, `SetMarkers` color when none is given | 232, 176, 68 (amber) | 240, 228, 66 (yellow) |
 | `Valid` | GhostObject outline where it can be placed | 80, 220, 120 (green) | 86, 180, 233 (sky blue) |
 | `Invalid` | GhostObject outline out of `maxDistance` or off a snap point with `snapOnly` | 230, 70, 70 (red) | 213, 94, 0 (vermillion) |
 | `Selected` | Selected Polygon point | 255, 220, 0 | 204, 121, 167 (reddish purple) |
@@ -347,7 +345,7 @@ Colors — every color the builders draw comes from a palette, resolved once at 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
 | `Coord(opts?)` | `opts?: { initialCoords? }` | `{x,y,z}\|nil` | Raycast point picker (no preview entity). Aim marker is a translucent sphere + center dot on the hit point |
-| `Entity()` | | `{x,y,z,w}\|nil` | Raycast entity picker — the entity under the crosshair highlights with an outline; LMB snaps to its center (returns the entity origin + heading). For points that belong to a prop/ped/vehicle already in the world (stashes, doors, machines). No fine-tune gizmo — LMB select, RMB/ESC cancel |
+| `Entity()` | | `{x,y,z,w}\|nil` | Raycast entity picker — the entity under the crosshair highlights with an outline (a ped gets a ring on the ground instead, because an outline on a ped crashes the game client); LMB snaps to its center (returns the entity origin + heading). For points that belong to a prop/ped/vehicle already in the world (stashes, doors, machines). No fine-tune gizmo — LMB select, RMB/ESC cancel |
 | `GhostPed(opts)` | `opts: { model, initialHeading?, anim?, zOffset? }` | `{x,y,z,w}\|nil` | Place a translucent ghost ped; `w` = heading. `anim = { dict, clip }` previews a looped pose with **per-frame pelvis compensation** — the visible body (not the ped origin) stays centered on the aim point, and the RETURNED coords are the compensated entity transform (replay via `TaskPlayAnim` + `SetEntityCoordsNoOffset` at those coords to reproduce the preview). Without `anim`, coords are the raw surface hit (preview lifted `zOffset`, default 1.0) |
 | `GhostVehicle(opts)` | `opts: { model, initialHeading? }` | `{x,y,z,w}\|nil` | Place a translucent ghost vehicle; `w` = heading |
 | `GhostObject(opts)` | `opts: { model?, objects?, initialHeading?, zOffset?, maxDistance?, snaps?, snapOnly?, snapRadius? }` | `{x,y,z,w,snap?}\|nil` | Place a translucent ghost prop, or a rigid group of props via `objects = { { model, offset?, rotation?, quat? }, ... }` (`offset` in local metres, `rotation` local degrees applied X then Y then Z, `quat` a local `{x,y,z,w}` that overrides `rotation`). Returns the group anchor (surface hit + `zOffset`) and heading, so spawning each member at `anchor + offset` rotated by `w` reproduces the preview. With `maxDistance`, an anchor farther than that from the player outlines the ghost in the `Invalid` color (red by default) and confirm is ignored. `snaps = { { x, y, z, w, id }, ... }` locks the ghost to the nearest snap point within `snapRadius` (default 0.75m), taking its position and heading, and the result carries that point's `id` as `snap`; with `snapOnly = true` only a snapped position can be confirmed and fine-tune is disabled. Returns `nil` if no model loads |
@@ -504,14 +502,14 @@ Ox-style aliases are available under `olink.radial`: `RegisterRadial`,
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
-| `GetResourceName()` | | `string` | Active provider: `'oxide-vehicles'`, `'qbx_seatbelt'`, `'qb-smallresources'`, or `'_default'` (no seatbelt system; always off) |
+| `GetResourceName()` | | `string` | Active provider: `'qbx_seatbelt'`, `'qb-smallresources'`, or `'_default'` (no seatbelt system; always off) |
 | `IsOn()` | | `boolean` | Local player's seatbelt is fastened |
 
 | Event | Side | Args | Description |
 |-------|------|------|-------------|
 | `olink:client:seatbeltChanged` | client | `(isOn)` | The local seatbelt was fastened or released, including the release when the player leaves the vehicle |
 
-Sources: `oxide-vehicles` `IsSeatbeltOn` export (it has no event, so the adapter polls every 250 ms while the player is in a vehicle), the `seatbelt` player bag set by `qbx_seatbelt` (what `qbx_hud` reads), and `qb-smallresources` (`HasSeatbeltOn` export, `seatbelt:client:ToggleSeatbelt`). An installed `oxide-vehicles` owns the namespace, even before it starts; pick another with `Config.Overrides.Seatbelt`.
+Sources: the `seatbelt` and `harness` player bags set by `qbx_seatbelt` (a harness counts as buckled, as on `qb-smallresources`), and `qb-smallresources` (`HasSeatbeltOn` export, `seatbelt:client:ToggleSeatbelt`). With both installed, pick one with `Config.Overrides.Seatbelt`.
 
 ## Module: voice (client only)
 
@@ -781,7 +779,7 @@ Every size and offset is in **vh**, percent of the screen height, so a panel kee
 Providers:
 
 - `oxide-hud`: the HUD measures its own widgets and places every panel clear of them, of its minimap and logo, of the zones the server reserves in its `Config.ReservedAreas`, and of panels placed before it, in the same order every session; when a column is full, a panel covers the least of other panels instead of the HUD ([HUD.md](HUD.md#where-the-hud-puts-your-panel)). Players can drag panels in the HUD editor (`/hud`), separately on foot and in a vehicle, hide them while editing, and switch them off in game. Circular adapter: while oxide-hud is installed but not running, every call answers as `_default`.
-- `_default`: no HUD. A panel registered with an `offset` sits exactly there; one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. `essential` and `shareSpot` are accepted and ignored. There is nothing to hide: `SetVisible` returns `false`, `IsVisible` is always `true`, and positions never carry `hidden`. There is no server accent: `GetTheme` returns `nil`.
+- `_default`: no HUD. A panel registered with an `offset` sits there (kept on screen); one without is placed inside the GTA safe zone, clear of estimated top-corner HUD stacks (45 x 28 vh in each top corner) and the minimap. `essential` and `shareSpot` are accepted and ignored. There is nothing to hide: `SetVisible` returns `false`, `IsVisible` is always `true`, and positions never carry `hidden`. There is no server accent: `GetTheme` returns `nil`.
 
 ### Client
 
@@ -1083,7 +1081,7 @@ data = {
 ### Per-framework caveats
 
 - **ESX (`es_extended`)** — no native downed/laststand concept; `playerDowned` never fires. Death payload includes `attacker`, `weapon`, `cause`, `coords` from `esx:onPlayerDeath`. `playerRespawned` is not emitted (ESX does not distinguish revive from respawn).
-- **QB-Core (`qb-core`)** — payloads are empty `{}` on death/downed/revive transitions because `hospital:server:SetDeathStatus` and `hospital:server:SetLaststandStatus` carry no killer info. Source-of-truth is metadata `isdead` / `inlaststand` (no statebag); the client relay reads it from `QBCore:Player:UpdatePlayerDataField` (current qb-core) and `QBCore:Player:SetPlayerData` (older builds). `playerRespawned` is not emitted.
+- **QB-Core (`qb-core`)** — payloads are empty `{}` on death/downed/revive transitions because `hospital:server:SetDeathStatus` and `hospital:server:SetLaststandStatus` carry no killer info. Source-of-truth is metadata `isdead` / `inlaststand` (no statebag); the client relay reads it from `QBCore:Player:UpdatePlayerDataField` (current qb-core) and `QBCore:Player:SetPlayerData` (older builds). On the client, `alive` after `downed` is relayed half a second late, so a bleed-out (last stand cleared, then `isdead` set) goes straight from `downed` to `dead`. `playerRespawned` is not emitted.
 - **QBX (`qbx_core`)** — death/downed payloads include `attacker` and `weapon`. `playerRespawned` is not emitted (qbx_medical reports respawn as a revive).
 - **oxide-death** — emits all five events including `playerRespawned`. Payloads include `cause` (causeOfDeath) and `coords`.
 - **`_default` fallback** — when no supported framework or medical resource is detected, a 500ms client poll on `IsPedDeadOrDying` emits `playerDied` / `playerRevived` only (no downed, no payload).

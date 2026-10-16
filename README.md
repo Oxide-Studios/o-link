@@ -2,7 +2,7 @@
 
 `o-link` is Oxide Studios' cross-framework bridge resource for FiveM.
 
-Its public API is organized into small namespaces such as `framework`, `character`, `job`, `money`, `inventory`, `vehicles`, `entity`, and `callback`. Each namespace is backed by a guard-clause adapter so the active implementation (QBCore, QBX, ESX, Oxide, etc.) is selected automatically.
+Its public API is organized into small namespaces such as `framework`, `character`, `job`, `money`, `inventory`, `vehicles`, `entity`, and `callback`. Each namespace is backed by a guard-clause adapter so the active implementation (QBCore, Qbox, ESX, etc.) is selected automatically.
 
 ## Current State
 
@@ -42,16 +42,31 @@ Ensure framework and detected dependencies before `o-link`, then ensure resource
 Example:
 
 ```cfg
-ensure oxide-core
-ensure oxide-inventory
-ensure oxide-accounts
-ensure oxide-vehicles
+ensure ox_lib
+ensure oxmysql
+ensure qb-core          # or qbx_core, or es_extended
+ensure ox_inventory     # and your target, phone, fuel and other scripts
 
 ensure o-link
 
 ensure oxide-police
 ensure oxide-shops
 ```
+
+## Updating
+
+When the server starts, o-link checks for a newer version and prints a notice in the server console. With `Config.AutoDownloadUpdates = true` in `config.lua` it downloads the new files itself; they apply on the next full server restart.
+
+The automatic download cannot create new folders. When a release adds folders (1.12.0 adds 14), it prints `this release must be installed manually` and changes nothing. To install it by hand:
+
+1. Download the latest version: on [github.com/Oxide-Studios/o-link](https://github.com/Oxide-Studios/o-link), click **Code**, then **Download ZIP**.
+2. Stop your server.
+3. Copy your `o-link/config.lua` somewhere safe.
+4. Delete your `o-link` folder and put the new one in its place. The folder inside the zip is called `o-link-main`: rename it to `o-link`.
+5. Put your `config.lua` back. Settings added since your copy have defaults, so it keeps working.
+6. Start your server. The update notice is gone.
+
+Always restart the whole server after updating, never o-link on its own: the resources that use o-link would stop working until they restart too.
 
 ## Credits & License
 
