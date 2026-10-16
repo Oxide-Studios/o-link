@@ -2,7 +2,7 @@
 -- puts the clock back after the provider moves it, keeps the held weather and stops the rain; holds
 -- belong to the calling resource; the last release resumes the provider; a stopping resource's hold
 -- is released.
--- Run from the [oxide] folder: bash oxide-phone/tests/lua.sh o-link tests/weather-hold-client.lua
+-- Run from the o-link folder: lua tests/weather-hold-client.lua
 local passed, failed = 0, 0
 local function check(name, ok)
     if ok then passed = passed + 1 else failed = failed + 1; print('FAIL ' .. name) end

@@ -1,7 +1,7 @@
 -- The ox_inventory stash guard (modules/inventory/ox_inventory/server.lua): a guarded stash opens
 -- through OpenStash only, once per open; a client asking ox_inventory for it by id is refused; other
 -- stashes are untouched.
--- Run from the [oxide] folder: bash oxide-phone/tests/lua.sh o-link tests/stash-guard-server.lua
+-- Run from the o-link folder: lua tests/stash-guard-server.lua
 local passed, failed = 0, 0
 local function check(name, ok)
     if ok then passed = passed + 1 else failed = failed + 1; print('FAIL ' .. name) end
@@ -39,6 +39,10 @@ olink = {
 dofile('modules/inventory/ox_inventory/server.lua')
 local inv = registered
 check('the adapter registered', inv ~= nil)
+check('no ox_inventory hook until a resource guards a stash', #hooks == 0)
+inv.OpenStash(4, 'plain_stash')
+check('without a guard OpenStash only force-opens, as before', #opened == 1 and opened[1].id == 'plain_stash' and opened[1].forced and #hooks == 0)
+opened = {}
 
 inv.RegisterStash('oxc_b_1_abcdefgh', 'Crate', 10, 1000)
 inv.RegisterStash('other_stash', 'Other', 10, 1000)

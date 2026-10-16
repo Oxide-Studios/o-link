@@ -241,7 +241,7 @@ Storage:
 | `RegisterStash(id, label, slots, weight, owner?)` | | `boolean` | Register a stash |
 | `OpenStash(src, stashId)` | | `nil` | Open a stash for a player |
 | `GetStashItems(id)` | `id: string` | `table[]` | Contents of a stash |
-| `CanReadStashes()` | | `boolean` | Whether `GetStashItems` reports a stash's real contents on this inventory: `true` on ox_inventory, oxide-inventory, qb-inventory v2 and ak47_qb_inventory. Everywhere else `GetStashItems` returns `{}` for any stash, so an empty list proves nothing; gate "is it empty?" checks on this |
+| `CanReadStashes()` | | `boolean` | Whether `GetStashItems` reports a stash's real contents on this inventory: `true` on ox_inventory, qb-inventory v2 and ak47_qb_inventory. Everywhere else `GetStashItems` returns `{}` for any stash, so an empty list proves nothing; gate "is it empty?" checks on this |
 | `GuardStash(id)` | `id: string` | `boolean` | Make a registered stash open only through `OpenStash`, so a client cannot reopen it by an id it saw earlier. `true` on ox_inventory (an `openInventory` hook refuses opens the server did not start); `false` where the inventory gives no way to refuse them |
 | `AddStashItem(id, item, count, metadata?)` | | `boolean` | Add one item to a stash |
 | `AddStashItems(id, items)` | `items: { item, count\|amount, metadata\|info }[]` | `boolean` | Add several |
