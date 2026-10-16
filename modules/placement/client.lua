@@ -803,10 +803,12 @@ local function Coord(o)
 end
 
 ---Raycast entity picker: the entity under the crosshair highlights with an
----outline and LMB snaps to its center. Returns { x, y, z, w } — the entity's
----origin and heading — or nil. For points that belong to a prop/ped/vehicle
----already placed in the world (stashes, doors, machines): the stored point
----lands exactly on the entity no matter where the ray grazed it.
+---outline, a ped with a ring on the ground instead (an outline on a ped
+---crashes the game client, citizenfx/fivem#1425), and LMB snaps to its
+---center. Returns { x, y, z, w } — the entity's origin and heading — or nil.
+---For points that belong to a prop/ped/vehicle already placed in the world
+---(stashes, doors, machines): the stored point lands exactly on the entity no
+---matter where the ray grazed it.
 local function Entity()
     if active then return nil end
     active = true
@@ -837,9 +839,11 @@ local function Entity()
                 targetCoords = GetEntityCoords(hitEntity)
             end
 
+            local isPed = target and GetEntityType(target) == 1
+
             if outlinedEntity ~= target then
                 clearOutline()
-                if target then
+                if target and not isPed then
                     SetEntityDrawOutline(target, true)
                     SetEntityDrawOutlineColor(MARKER_R, MARKER_G, MARKER_B, 255)
                     SetEntityDrawOutlineShader(1)
@@ -848,6 +852,11 @@ local function Entity()
             end
 
             if target then
+                if isPed then
+                    local groundZ = targetCoords.z - GetEntityHeightAboveGround(target) + 0.03
+                    DrawMarker(25, targetCoords.x, targetCoords.y, groundZ, 0, 0, 0, 0, 0, 0,
+                        1.2, 1.2, 1.0, MARKER_R, MARKER_G, MARKER_B, 200, false, false, 2, false, nil, nil, false)
+                end
                 DrawMarker(28, targetCoords.x, targetCoords.y, targetCoords.z, 0, 0, 0, 0, 0, 0,
                     0.15, 0.15, 0.15, MARKER_R, MARKER_G, MARKER_B, 200, false, false, 2, false, nil, nil, false)
             elseif hit then
