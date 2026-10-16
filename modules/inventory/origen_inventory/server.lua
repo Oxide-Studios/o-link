@@ -8,6 +8,8 @@ local stashes = {}
 olink._register('inventory', {
     -- GetStashItems cannot read contents here, so an empty list proves nothing.
     CanReadStashes = function() return false end,
+    -- No way to stop a client opening a stash by id here.
+    GuardStash = function() return false end,
     ---@param src number
     ---@param item string
     ---@return number

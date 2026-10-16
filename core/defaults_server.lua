@@ -90,7 +90,7 @@ stub('inventory', {
     'GetPlayerInventory', 'OpenPlayerInventory', 'RegisterStash', 'OpenStash',
     'GetItemInfo', 'GetImagePath', 'CanCarryItem', 'ClearStash', 'GetStashItems',
     'Items', 'OpenShop', 'RegisterShop', 'RemoveStashItem', 'AddStashItem',
-    'SetMetadata', 'UpdatePlate', 'AddTrunkItems', 'GetTrunkItems', 'AddStashItems', 'CanReadStashes',
+    'SetMetadata', 'UpdatePlate', 'AddTrunkItems', 'GetTrunkItems', 'AddStashItems', 'CanReadStashes', 'GuardStash',
 }, {
     GetResourceName = 'none',
     AddStashItems = false,
@@ -107,6 +107,7 @@ stub('inventory', {
     ClearStash = false,
     GetStashItems = function() return {} end,
     CanReadStashes = false,
+    GuardStash = false,
     Items = function() return {} end,
     RegisterShop = false,
     RemoveStashItem = false,

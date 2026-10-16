@@ -24,6 +24,8 @@ local stashes = {}
 olink._register('inventory', {
     -- GetStashItems reads real contents.
     CanReadStashes = function() return true end,
+    -- No way to stop a client opening a stash by id here.
+    GuardStash = function() return false end,
     ---@param src number
     ---@param item string
     ---@return number

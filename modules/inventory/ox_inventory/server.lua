@@ -22,9 +22,35 @@ local function vehicleInv(plate, netId, kind)
     return { id = id, netid = netId, type = kind == 'glove' and 'glovebox' or 'trunk' }
 end
 
+-- Guarded stashes open only through OpenStash: ox_inventory lets a client open any stash whose id it
+-- has seen, so the hook refuses opens of a guarded id that the server did not start just before.
+local guarded, approved = {}, {}
+local GUARD_WINDOW_MS = 5000
+local hooked = false
+
+local function hookGuard()
+    if hooked then return end
+    hooked = true
+    ox_inventory:registerHook('openInventory', function(payload)
+        local id = payload.inventoryId and tostring(payload.inventoryId)
+        if not id or not guarded[id] then return true end
+        local key = ('%s:%s'):format(payload.source, id)
+        local at = approved[key]
+        approved[key] = nil
+        return at ~= nil and GetGameTimer() - at <= GUARD_WINDOW_MS
+    end, { typeFilter = { stash = true } })
+end
+
 olink._register('inventory', {
     -- GetStashItems reads real contents.
     CanReadStashes = function() return true end,
+    ---@param id string
+    ---@return boolean
+    GuardStash = function(id)
+        guarded[tostring(id)] = true
+        hookGuard()
+        return true
+    end,
     ---@param src number
     ---@param item string
     ---@return number
@@ -127,7 +153,9 @@ olink._register('inventory', {
     ---@param stashId string
     ---@return nil
     OpenStash = function(src, stashId)
-        ox_inventory:forceOpenInventory(src, 'stash', tostring(stashId))
+        local id = tostring(stashId)
+        if guarded[id] then approved[('%s:%s'):format(src, id)] = GetGameTimer() end
+        ox_inventory:forceOpenInventory(src, 'stash', id)
     end,
 
     ---@param item string
