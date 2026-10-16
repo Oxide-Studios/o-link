@@ -2,9 +2,25 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import vm from 'node:vm'
+import path from 'node:path'
 import { createRequire } from 'node:module'
-const require = createRequire(new URL('../../oxide-carplayer/web/package.json', import.meta.url))
-const Vue = require('vue')
+
+// The runtime needs Vue 3, which o-link does not ship. Set VUE_PATH to a folder where Vue is
+// installed (`npm i vue@3` in a scratch folder); inside the Oxide repository the copy in
+// oxide-carplayer/web is found by itself. Without either, every test here is skipped.
+function loadVue() {
+    const bases = [
+        process.env.VUE_PATH && path.join(path.resolve(process.env.VUE_PATH), 'package.json'),
+        new URL('../../oxide-carplayer/web/package.json', import.meta.url),
+    ].filter(Boolean)
+    for (const base of bases) {
+        try { return createRequire(base)('vue') } catch {}
+    }
+    return null
+}
+const Vue = loadVue()
+const NO_VUE = 'needs Vue 3: set VUE_PATH to a folder where vue is installed'
+const run = (name, fn) => test(name, { skip: Vue ? false : NO_VUE }, fn)
 const catalog = JSON.parse(fs.readFileSync(new URL('../web/map/catalog.json', import.meta.url)))
 const calibration = JSON.parse(fs.readFileSync(new URL('../data/map-calibration.json', import.meta.url)))
 const runtime = fs.readFileSync(new URL('../web/map/runtime.js', import.meta.url), 'utf8')
@@ -25,7 +41,7 @@ async function setup(mode = 'combined') {
     return { map, api: context.OxideMap, update(value, version = 2) { listener({ data: { action: 'olink:map:config', data: config(value, version) } }) } }
 }
 
-test('shared calibration preserves every source landmark in all applicable views', async () => {
+run('shared calibration preserves every source landmark in all applicable views', async () => {
     const { api } = await setup()
     for (const source of calibration.sources) {
         for (const point of source.points) {
@@ -44,7 +60,7 @@ test('shared calibration preserves every source landmark in all applicable views
     }
 })
 
-test('separate view selection is local to the view; disabling Cayo hides its markers', async () => {
+run('separate view selection is local to the view; disabling Cayo hides its markers', async () => {
     const { map, api, update } = await setup('separate')
     const second = api.use(Vue)
     map.selectMapLayer('cayo')
@@ -60,7 +76,7 @@ test('separate view selection is local to the view; disabling Cayo hides its mar
     assert.equal(map.mapLayer.value, 'mainland')
 })
 
-test('auto selection follows focus coordinates and stale responses cannot revert a mode change', async () => {
+run('auto selection follows focus coordinates and stale responses cannot revert a mode change', async () => {
     const { api, update } = await setup('separate')
     const focus = Vue.ref({ x: 223, y: -995 })
     const map = api.use(Vue, { focus })
@@ -73,7 +89,7 @@ test('auto selection follows focus coordinates and stale responses cannot revert
     assert.equal(map.mapLayer.value, 'mainland')
 })
 
-test('all tile references resolve to one owner and partial edges have the correct display size', async () => {
+run('all tile references resolve to one owner and partial edges have the correct display size', async () => {
     const { map, update } = await setup()
     for (const id of ['combined', 'mainland', 'cayo']) {
         update(id === 'combined' ? 'combined' : 'separate')
@@ -90,7 +106,7 @@ test('all tile references resolve to one owner and partial edges have the correc
     }
 })
 
-test('tile culling and polygon filtering respect the selected island', async () => {
+run('tile culling and polygon filtering respect the selected island', async () => {
     const { map } = await setup('separate')
     const visible = map.tilesInView(1000, 1200, 1, 600, 400)
     assert.ok(visible.length > 0 && visible.length < Object.keys(catalog.maps.mainland.tiles).length)

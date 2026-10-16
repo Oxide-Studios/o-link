@@ -100,7 +100,7 @@ authorization:
 
     node --test o-link/tests/map-runtime.test.mjs
 
-The runtime test uses the Vue package installed in `oxide-carplayer/web`. Run
+The runtime test needs Vue 3, which o-link does not ship: set `VUE_PATH` to a folder where Vue is installed (`npm i vue@3` in a scratch folder), or the tests are skipped. Run
 `lua tests/map-settings.lua` from o-link for the isolated Lua lifecycle checks.
 
 In game, verify both Car Player views, the shop admin map, gang territory editing,
