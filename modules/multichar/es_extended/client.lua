@@ -71,9 +71,12 @@ end)
 -- longer get because customers disable that resource). Mirrors QBX/QBCore:
 -- wait for session, disable auto-spawn, dismiss the loadscreen (esx_loadingscreen
 -- and similar wait for external shutdown), fire ESX's loadingScreenOff event for
--- any consumers that hook it, then hand off to oxide-multichar.
+-- any consumers that hook it, then hand off to oxide-multichar. Only with
+-- oxide-multichar on the server: esx_multicharacter or any other character
+-- screen boots itself and owns the loadscreen and spawnmanager.
 CreateThread(function()
     while not NetworkIsSessionStarted() do Wait(0) end
+    if GetResourceState('oxide-multichar') == 'missing' then return end
     pcall(function() exports.spawnmanager:setAutoSpawn(false) end)
     ShutdownLoadingScreen()
     ShutdownLoadingScreenNui()

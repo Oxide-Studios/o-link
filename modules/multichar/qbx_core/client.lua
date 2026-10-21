@@ -120,8 +120,13 @@ end)
 -- session started; we do it here so the player isn't stranded on "You will be
 -- loaded in any moment now..." while oxide-multichar's Selection.Open streams
 -- IPLs (a stream that won't progress until the loadscreen is dismissed).
+--
+-- Only with oxide-multichar on the server. Any other character screen (qbx_core's
+-- own, or an external one with useExternalCharacters) boots itself and owns the
+-- loadscreen and spawnmanager.
 CreateThread(function()
     while not NetworkIsSessionStarted() do Wait(0) end
+    if GetResourceState('oxide-multichar') == 'missing' then return end
     pcall(function() exports.spawnmanager:setAutoSpawn(false) end)
     ShutdownLoadingScreen()
     ShutdownLoadingScreenNui()

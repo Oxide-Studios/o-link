@@ -73,9 +73,12 @@ end)
 -- longer get because customers disable that resource). Mirrors QBX's pattern:
 -- wait for session, disable auto-spawn, dismiss the loadscreen explicitly
 -- (qb-loadingscreen and most QB-era loadscreens also wait for external
--- shutdown), then hand off to oxide-multichar.
+-- shutdown), then hand off to oxide-multichar. Only with oxide-multichar on the
+-- server: qb-multicharacter or any other character screen boots itself and owns
+-- the loadscreen and spawnmanager.
 CreateThread(function()
     while not NetworkIsSessionStarted() do Wait(0) end
+    if GetResourceState('oxide-multichar') == 'missing' then return end
     pcall(function() exports.spawnmanager:setAutoSpawn(false) end)
     ShutdownLoadingScreen()
     ShutdownLoadingScreenNui()

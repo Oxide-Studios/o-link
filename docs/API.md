@@ -109,7 +109,7 @@ Character lifecycle (list/create/select/delete) for a framework-agnostic multich
 | `GetResourceName()` | | `string` | Active provider name |
 | `OnboardNewCharacter(charId, opts, onDone)` | `charId: any, opts: { gender: 0\|1 }, onDone: fun(success: boolean)` | `nil` | Post-creation onboarding for a fresh character. The adapter runs whatever the framework natively does here — apartment selector, spawn picker, appearance editor — in the framework-native order. Called by the multichar resource once after `Create` + `Select` + spawn. |
 
-The client adapter bridges the framework's native "show character selection" trigger to a unified `olink:client:startCharacterSelect` event (fired on boot and after `Logout`).
+The client adapter bridges the framework's native "show character selection" trigger to a unified `olink:client:startCharacterSelect` event (fired after `Logout`, and on boot when `oxide-multichar` is on the server). The boot trigger is a takeover: on QBCore, Qbox and ESX it turns off spawnmanager's auto-spawn, closes the loading screen and then fires the event. Without `oxide-multichar` it does none of that, so the server's own character screen keeps its loading screen and spawn.
 
 `OnboardNewCharacter` is the single onboarding seam — it folds together apartment selection (QBX `apartments:client:setupSpawnUI`, QB `qb-spawn:client:setupSpawns`), default-spawn selection, and first-character clothing (`qb-clothes:client:CreateFirstCharacter`) per framework.
 
