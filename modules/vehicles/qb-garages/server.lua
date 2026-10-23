@@ -274,7 +274,7 @@ olink._register('vehicles', {
         local Player = QBCore.Functions.GetPlayer(src)
         if not Player or Player.PlayerData.citizenid ~= row.citizenid then return false, 'not_owner' end
 
-        -- Cash goes through o-link so a cash item pays too; the bank stays the framework's own.
+        -- Cash goes through olink.money, which checks the balance first; the bank stays the framework's own.
         local fee = tonumber(row.depotprice) or 0
         local paidFrom
         if fee > 0 then
