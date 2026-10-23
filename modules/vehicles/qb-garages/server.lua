@@ -3,6 +3,18 @@ if not olink._hasOverride('Vehicles') and GetResourceState('qbx_core') == 'start
 
 local columnCache = {}
 
+---An impound fee that was taken but could not be given back: an error log, and an alert to
+---every admin online so it can be paid back by hand.
+local function FlagRefundOwed(src, charId, account, amount)
+    olink.logger.Error('o-link', 'vehicles', 'impound refund failed, the player is owed this amount', {
+        src = src, charId = charId, account = account, amount = amount,
+    })
+    local message = ('[o-link] Impound refund failed: %s is owed $%s %s.'):format(tostring(charId or src), amount, account)
+    for _, playerId in ipairs(olink.framework.GetPlayers() or {}) do
+        if olink.framework.IsAdmin(playerId) then olink.notify.Send(playerId, message, 'error') end
+    end
+end
+
 local function NormalizePlate(plate)
     return plate and tostring(plate):match('^%s*(.-)%s*$') or nil
 end
@@ -287,7 +299,7 @@ olink._register('vehicles', {
                 else
                     refunded = Player.Functions.AddMoney('bank', fee, 'oxide-impound-refund') ~= false
                 end
-                if not refunded then olink._flagRefundOwed(src, row.citizenid, paidFrom, fee, 'impound release failed') end
+                if not refunded then FlagRefundOwed(src, row.citizenid, paidFrom, fee) end
             end
             return false, 'race_lost'
         end

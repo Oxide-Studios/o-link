@@ -54,7 +54,6 @@ server_scripts {
     'modules/license/**/server.lua',
     'modules/inventory/**/server.lua',
     'modules/inventory/_shims_server.lua',
-    'modules/money/_shims_server.lua',
     'modules/vehicles/**/server.lua',
     'modules/vehicles/server.lua',
     'modules/vehiclekey/**/server.lua',
