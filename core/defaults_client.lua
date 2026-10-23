@@ -278,11 +278,18 @@ stub('needs', {
 })
 
 stub('money', {
-    'GetResourceName', 'GetBalance',
+    'GetResourceName', 'GetBalance', 'GetCashItem',
 }, {
     GetResourceName = 'none',
     GetBalance = 0,
+    GetCashItem = false,
 })
+
+-- Money adapters report balance changes through this, so the cash shim can replace what
+-- they report for cash when cash is an inventory item.
+function olink._moneyChanged(accountType, balance)
+    TriggerEvent('olink:client:moneyChanged', accountType, balance)
+end
 
 stub('seatbelt', {
     'GetResourceName', 'IsOn',

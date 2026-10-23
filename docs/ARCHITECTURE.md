@@ -192,7 +192,7 @@ o-link/
 
 ## Configuration Status
 
-Eight config surfaces exist in [`../config.lua`](../config.lua):
+Nine config surfaces exist in [`../config.lua`](../config.lua):
 
 - `Config.Debug`
 - `Config.Overrides`
@@ -202,6 +202,7 @@ Eight config surfaces exist in [`../config.lua`](../config.lua):
 - `Config.Diag`
 - `Config.MapMode` (see [`MAPS.md`](MAPS.md))
 - `Config.Placement`
+- `Config.Cash`
 
 `Config.Debug` controls loader logging.
 
@@ -218,6 +219,8 @@ Because of that same protection, a customer who updates keeps the `config.lua` t
 `Config.Diag` configures the `/oxide:diag` support snapshot written by `core/diag_server.lua`: `RequireAce` (an extra ace that grants access alongside the framework admin check), `RecentErrors` (how many captured errors to include when oxide-logger is running), and `SnapshotDir` (a single-level directory, because `SaveResourceFile` only auto-creates one parent). Every key defaults in code, since the auto-updater never overwrites a customer's `config.lua`.
 
 `Config.Placement` sets the colors the placement builders draw: `Palette` (`'default'` or `'colorblind'`) and `Colors` (per-role `{ r, g, b }` overrides on top of the palette). `modules/placement/client.lua` reads it on the client, since `config.lua` is a shared script, and resolves it once at load, so nothing is synced or read per frame. A missing `Config.Placement` or key means the default palette, which is exactly the original look. Each player can replace the server palette for themselves with `/olink:placementcolors default|colorblind|reset`, stored in the client's resource KVP (`placement:palette`). Roles and preset values are listed under the placement module in [`API.md`](API.md).
+
+`Config.Cash` (`mode = 'account'` by default, or `'item'` with an `item` name) decides what cash is for every resource that moves money through o-link. `modules/money/_shims_server.lua` and `_shims_client.lua` load after the money and inventory adapters and, in item mode, send the `'cash'` account to the inventory bridge; every other account, and cash in account mode, reaches the money adapter unchanged. Client money adapters report balance changes through `olink._moneyChanged` so the client shim can replace the framework's cash updates with the item count. A missing `Config.Cash` means account mode. Behaviour is listed under the money module in [`API.md`](API.md).
 
 `Config.Overrides` is consumed during implementation selection. When an override is set for a namespace, only the matching implementation is allowed to load for that namespace and normal priority blocker guards are bypassed for that selected implementation.
 

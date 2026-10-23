@@ -360,6 +360,16 @@ function olink._getCapabilities()
     return out
 end
 
+---The cash item when `Config.Cash.mode` is 'item', or nil when cash is the framework's
+---balance. A config.lua older than this setting has no `Cash` key and means 'account'.
+---@return string|nil
+function olink._cashItem()
+    local cfg = Config and Config.Cash
+    if type(cfg) ~= 'table' or cfg.mode ~= 'item' then return nil end
+    if type(cfg.item) ~= 'string' or cfg.item == '' then return nil end
+    return cfg.item
+end
+
 ---Strip .png / .webp extension from an item name for image path resolution.
 ---@param item string
 ---@return string

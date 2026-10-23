@@ -21,7 +21,7 @@ local function Update(money)
         balance = tonumber(balance)
         if balance and balance ~= current[accountType] then
             current[accountType] = balance
-            TriggerEvent('olink:client:moneyChanged', accountType, balance)
+            olink._moneyChanged(accountType, balance)
         end
     end
 end

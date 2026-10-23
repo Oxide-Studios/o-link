@@ -156,18 +156,29 @@ The client adapter bridges the framework's native "show character selection" tri
 | `AddOffline(identifier, accountType, amount, reason?)` | `identifier: string, accountType: string, amount: number, reason?: string` | `boolean` | Add money offline. `reason` labels the transaction on backends that keep a ledger; frameworks that write the balance directly ignore it |
 | `RemoveOffline(identifier, accountType, amount, reason?)` | `identifier: string, accountType: string, amount: number, reason?: string` | `boolean` | Remove money offline. Same `reason` handling as `AddOffline` |
 | `GetBalanceOffline(identifier, accountType)` | `identifier: string, accountType: string` | `number` | Offline balance |
+| `GetCashItem()` | | `string\|false` | The cash item's name when `Config.Cash.mode` is `'item'`, otherwise `false`. Older o-link versions do not have this function; nil-check it before calling |
 
 ### Client
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
 | `GetResourceName()` | | `string` | Active provider: `'qb-core'`, `'qbx_core'`, `'es_extended'`, or `'_default'` (no framework; every balance reads `0`) |
 | `GetBalance(accountType)` | `accountType: string` | `number` | Local player's balance. `'cash'` and `'bank'` work on every provider (`'money'` is accepted for cash); other names are the framework's own accounts (`'crypto'`, `'black_money'`). `0` when unknown |
+| `GetCashItem()` | | `string\|false` | Same as the server function |
 
 | Event | Side | Args | Description |
 |-------|------|------|-------------|
 | `olink:client:moneyChanged` | client | `(accountType, balance)` | A local balance moved. `accountType` is `'cash'` or `'bank'` (ESX `money` is reported as `'cash'`), or the framework's name for any other account it reports. Only accounts that changed fire; the first update after a character loads reports every account |
 
 Sources: QB and QBX read `PlayerData.money` (QB `QBCore:Player:UpdatePlayerDataField` and `SetPlayerData`, QBX `SetPlayerData`), ESX reads `PlayerData.accounts` (`esx:setAccountMoney`, `esx:playerLoaded`).
+
+### Cash as an inventory item
+
+`Config.Cash = { mode = 'account' | 'item', item = 'cash' }` in `config.lua` decides what cash is for every caller. `'account'` (also when the key is missing) is the framework's cash balance. With `'item'`, the `'cash'` account (and ESX's `'money'`) is the inventory item `item`, worth $1 each; every other account is unchanged.
+
+- `Add`, `Remove` and `GetBalance` move and read the item through the inventory bridge. `Remove` checks the item count first.
+- Amounts must be whole dollars. An amount with cents is refused (`false`) and logged with the calling resource; it is never rounded.
+- `AddOffline` and `RemoveOffline` for cash return `false` (logged), and `GetBalanceOffline` returns `0`: an offline player's inventory is not loaded. Hold such payments until the player is online.
+- Client: `GetBalance('cash')` is the item count, and `olink:client:moneyChanged` reports `'cash'` from the item. Moves made through o-link report straight away; other inventory changes within a second.
 
 ## Module: needs (server + client)
 
