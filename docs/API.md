@@ -169,6 +169,19 @@ The client adapter bridges the framework's native "show character selection" tri
 
 Sources: QB and QBX read `PlayerData.money` (QB `QBCore:Player:UpdatePlayerDataField` and `SetPlayerData`, QBX `SetPlayerData`), ESX reads `PlayerData.accounts` (`esx:setAccountMoney`, `esx:playerLoaded`).
 
+### Cash item mirror
+
+Framework cash is always the money: `GetBalance` and every other read use the framework balance on both sides. `Config.Cash = { mirrorItem = false, item = 'cash' }` in `config.lua` is for inventories that have a cash item but do not keep it in step with framework cash. With `mirrorItem = true`, `Add` and `Remove` on `'cash'` (and ESX's `'money'`) also add or remove `item` by the same amount, both or neither:
+
+- `Add` puts the items in first, then the framework cash; if the cash fails, the items are taken back.
+- `Remove` checks the framework balance and the item count, takes the framework cash, then the items; if the items fail, the cash is put back.
+- If an undo fails too, the error is logged and every admin online is alerted.
+- Amounts must be whole dollars: one with cents is refused (`false`), logged with the calling resource, and nothing moves.
+- `AddOffline` and `RemoveOffline` for cash return `false` with an error log naming the caller, because an offline inventory cannot be changed. Callers paying an offline player cash must keep the payment (queue it, or pay it into the bank) rather than drop it.
+- Only cash moved through o-link is mirrored. A cash item picked up or dropped is the inventory's business, and scripts that change framework cash without o-link are not mirrored.
+
+Leave it off for inventories that already keep the item in step (ox_inventory on QBX and ESX): the item would be added twice.
+
 ## Module: needs (server + client)
 
 Hunger, thirst and stress on a 0-100 scale. Stock ESX (`esx_status`) has no stress, so on ESX it reads `nil` and cannot be set, on the server and the client, unless the server registers a `stress` status.

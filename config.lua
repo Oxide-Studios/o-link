@@ -71,6 +71,21 @@ Config.Diag = {
     SnapshotDir = 'diag',
 }
 
+-- Cash item mirror. Framework cash is always the money; this only keeps a cash
+-- item in step with it. Most inventories with a cash item already do that
+-- themselves (ox_inventory on QBX and ESX, for example): leave this off for them,
+-- or every cash payment adds the item twice.
+-- Turn it on only if your inventory has a cash item that does not follow the
+-- framework's cash balance (a bank deposit that leaves the cash item behind is the
+-- sign). o-link then adds or removes `item` each time it changes framework cash,
+-- and refuses the change when the item step cannot be done, so the two never drift
+-- apart because of a resource using o-link. While it is on, cash moves in whole
+-- dollars only, and an offline player's cash cannot be changed.
+Config.Cash = {
+    mirrorItem = false, -- true: keep the cash item in step with framework cash
+    item = 'cash',      -- Cash item name
+}
+
 -- When set, every `olink.inventory.GetImagePath` call returns `<base>/<item>.png`.
 -- Example: 'https://r2.qbox.re/myserver/inventory/'
 Config.ImageBaseUrl = nil
