@@ -23,7 +23,7 @@ end
 -- it ships as nil, so a missing key and the shipped value are indistinguishable.
 -- Most updated installs hit this, so it is one plain informational line, not a
 -- warning.
-local EXPECTED = { 'Overrides', 'Debug', 'CheckForUpdates', 'AutoDownloadUpdates', 'Diag', 'Placement', 'Cash' }
+local EXPECTED = { 'Overrides', 'Debug', 'CheckForUpdates', 'AutoDownloadUpdates', 'Diag', 'Placement' }
 local missing = {}
 for _, key in ipairs(EXPECTED) do
     if rawget(Config, key) == nil then missing[#missing + 1] = key end

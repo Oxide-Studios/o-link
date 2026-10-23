@@ -58,7 +58,7 @@ stub('job', {
 })
 
 stub('money', {
-    'Add', 'Remove', 'GetBalance', 'AddOffline', 'RemoveOffline', 'GetBalanceOffline', 'GetCashItem',
+    'Add', 'Remove', 'GetBalance', 'AddOffline', 'RemoveOffline', 'GetBalanceOffline',
 }, {
     Add = false,
     Remove = false,
@@ -66,7 +66,6 @@ stub('money', {
     AddOffline = false,
     RemoveOffline = false,
     GetBalanceOffline = 0,
-    GetCashItem = false,
 })
 
 stub('license', {

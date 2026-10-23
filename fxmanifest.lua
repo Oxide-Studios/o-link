@@ -100,7 +100,6 @@ client_scripts {
     'modules/money/**/client.lua',
     'modules/inventory/**/client.lua',
     'modules/inventory/_shims_client.lua',
-    'modules/money/_shims_client.lua',
     'modules/notify/**/client.lua',
     'modules/notify/relay_client.lua',
     'modules/helptext/**/client.lua',

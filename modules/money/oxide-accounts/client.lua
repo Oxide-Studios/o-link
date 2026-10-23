@@ -33,6 +33,6 @@ for _, accountType in ipairs(ACCOUNTS) do
         end
         if balance == current[accountType] then return end
         current[accountType] = balance
-        olink._moneyChanged(accountType, balance)
+        TriggerEvent('olink:client:moneyChanged', accountType, balance)
     end)
 end

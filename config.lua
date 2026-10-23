@@ -71,22 +71,6 @@ Config.Diag = {
     SnapshotDir = 'diag',
 }
 
--- Where players keep their cash. Every resource that moves cash through o-link
--- (banking, shops, jobs and the rest) follows this one setting.
---   'account' (default) is the framework's cash balance. Keep it for inventories
---             that show that balance as an item and keep the two matched, such as
---             ox_inventory's money item on QBX and ESX.
---   'item'    is an inventory item worth $1 each, named by `item`. Use it when your
---             inventory keeps cash as an item that the framework's cash balance
---             does not follow: a bank deposit that leaves the cash item behind is
---             the sign.
--- In item mode cash moves in whole dollars only, and an offline player's cash can
--- be neither paid nor read, because their inventory is not loaded.
-Config.Cash = {
-    mode = 'account', -- 'account' or 'item'
-    item = 'cash',    -- Cash item name when mode = 'item'
-}
-
 -- When set, every `olink.inventory.GetImagePath` call returns `<base>/<item>.png`.
 -- Example: 'https://r2.qbox.re/myserver/inventory/'
 Config.ImageBaseUrl = nil
