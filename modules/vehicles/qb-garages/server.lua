@@ -262,25 +262,33 @@ olink._register('vehicles', {
         local Player = QBCore.Functions.GetPlayer(src)
         if not Player or Player.PlayerData.citizenid ~= row.citizenid then return false, 'not_owner' end
 
+        -- Cash goes through o-link so a cash item pays too; the bank stays the framework's own.
         local fee = tonumber(row.depotprice) or 0
+        local paidFrom
         if fee > 0 then
-            local removed = false
-            local cash = (Player.PlayerData.money and Player.PlayerData.money.cash) or 0
-            if cash >= fee then
-                removed = Player.Functions.RemoveMoney('cash', fee, 'oxide-impound')
+            if (olink.money.GetBalance(src, 'cash') or 0) >= fee and olink.money.Remove(src, 'cash', fee, 'oxide-impound') then
+                paidFrom = 'cash'
+            elseif Player.Functions.RemoveMoney('bank', fee, 'oxide-impound') then
+                paidFrom = 'bank'
+            else
+                return false, 'no_funds'
             end
-            if not removed then
-                removed = Player.Functions.RemoveMoney('bank', fee, 'oxide-impound')
-            end
-            if not removed then return false, 'no_funds' end
         end
 
         local affected = MySQL.update.await(
             'UPDATE player_vehicles SET state = 0, depotprice = 0 WHERE id = ? AND state = 2',
             { tonumber(vehicleId) })
         if (affected or 0) <= 0 then
-            -- Atomic guard tripped; refund
-            if fee > 0 then Player.Functions.AddMoney('bank', fee, 'oxide-impound-refund') end
+            -- Atomic guard tripped; refund to the account that paid
+            if paidFrom then
+                local refunded
+                if paidFrom == 'cash' then
+                    refunded = olink.money.Add(src, 'cash', fee, 'oxide-impound-refund')
+                else
+                    refunded = Player.Functions.AddMoney('bank', fee, 'oxide-impound-refund') ~= false
+                end
+                if not refunded then olink._flagRefundOwed(src, row.citizenid, paidFrom, fee, 'impound release failed') end
+            end
             return false, 'race_lost'
         end
         return true, nil

@@ -127,6 +127,18 @@ check('offline cash reads 0', money.GetBalanceOffline('C1', 'cash') == 0)
 check('offline bank still reaches the framework', money.AddOffline('C1', 'bank', 10) == true and offlineWrites == 1
     and money.GetBalanceOffline('C1', 'bank') == 42)
 
+local errors, alerts = {}, {}
+olink._register('logger', { Error = function(_, _, message, data) errors[#errors + 1] = { message = message, data = data } end })
+olink._register('framework', {
+    GetPlayers = function() return { 1, 2 } end,
+    IsAdmin = function(src) return src == 2 end,
+})
+olink._register('notify', { Send = function(src, message) alerts[#alerts + 1] = { src = src, message = message } end })
+olink._flagRefundOwed(1, 'ABC123', 'cash', 250, 'impound release failed')
+check('a failed refund is logged with who is owed what', #errors == 1 and errors[1].data.charId == 'ABC123'
+    and errors[1].data.amount == 250 and errors[1].data.account == 'cash')
+check('only admins are alerted', #alerts == 1 and alerts[1].src == 2 and alerts[1].message:find('ABC123 is owed $250 cash', 1, true) ~= nil)
+
 -- account mode ----------------------------------------------------------------------------------
 LoadServer({ mode = 'account', item = 'cash' })
 money = olink.money

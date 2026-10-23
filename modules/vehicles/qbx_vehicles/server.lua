@@ -315,24 +315,35 @@ olink._register('vehicles', {
         end)
         if not okFind or not vehicle then return false, 'not_found' end
 
+        -- Cash goes through o-link so a cash item pays too; the bank stays the framework's own.
         local fee = tonumber(vehicle.depotPrice) or 0
+        local paidFrom
         if fee > 0 then
-            local removed = false
-            local cash = (player.PlayerData.money and player.PlayerData.money.cash) or 0
-            if cash >= fee then
-                removed = player.Functions.RemoveMoney('cash', fee, 'oxide-impound')
+            if (olink.money.GetBalance(src, 'cash') or 0) >= fee and olink.money.Remove(src, 'cash', fee, 'oxide-impound') then
+                paidFrom = 'cash'
+            elseif player.Functions.RemoveMoney('bank', fee, 'oxide-impound') then
+                paidFrom = 'bank'
+            else
+                return false, 'no_funds'
             end
-            if not removed then
-                removed = player.Functions.RemoveMoney('bank', fee, 'oxide-impound')
-            end
-            if not removed then return false, 'no_funds' end
         end
 
         local saved
         local okSave = pcall(function()
             saved = exports.qbx_vehicles:SaveVehicle(vehicle, { state = 0 })
         end)
-        if not okSave or not saved then return false, 'save_failed' end
+        if not okSave or not saved then
+            if paidFrom then
+                local refunded
+                if paidFrom == 'cash' then
+                    refunded = olink.money.Add(src, 'cash', fee, 'oxide-impound-refund')
+                else
+                    refunded = player.Functions.AddMoney('bank', fee, 'oxide-impound-refund') ~= false
+                end
+                if not refunded then olink._flagRefundOwed(src, player.PlayerData.citizenid, paidFrom, fee, 'impound release failed') end
+            end
+            return false, 'save_failed'
+        end
         return true, nil
     end,
 })
