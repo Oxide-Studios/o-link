@@ -1,0 +1,27 @@
+{
+  "map": {
+    "mode": "Mode de carte",
+    "help": "Utilisez le mode par defaut de o-link, combinez les deux iles, affichez les iles separement ou masquez Cayo Perico.",
+    "mainland": "Continent",
+    "cayo": "Cayo Perico",
+    "combined": "Combinee",
+    "separate": "Separees",
+    "disabled": "Cayo Perico desactive",
+    "inherit": "Heriter du mode par defaut de o-link",
+    "select": "Region de la carte",
+    "loading": "Chargement de la carte",
+    "unavailable": "Carte indisponible",
+    "denied": "Vous n'avez pas la permission de modifier les parametres de la carte.",
+    "usage_default": "Utilisez olink:mapmode combined|separate|disabled",
+    "usage_override": "Utilisez la commande :mapmode de cette ressource avec inherit|combined|separate|disabled"
+  },
+  "placement": {
+    "colors_help": "Choisissez les couleurs affichees par l'outil de placement",
+    "colors_arg": "default, colorblind ou reset pour utiliser les couleurs du serveur",
+    "colors_current": "Couleurs de placement : %s",
+    "colors_server": "couleurs par defaut du serveur",
+    "colors_set": "Couleurs de placement definies sur %s.",
+    "colors_reset": "Couleurs de placement reinitialisees aux couleurs par defaut du serveur.",
+    "colors_unknown": "Palette inconnue. Utilisez default, colorblind ou reset."
+  }
+}
