@@ -1,5 +1,7 @@
 if not olink._guardImpl('Inventory', 'qb-inventory', 'qb-inventory') then return end
 if not olink._hasOverride('Inventory') and GetResourceState('oxide-inventory') == 'started' then return end
+-- Codem Inventory V2 carries this resource name on qb-core; it binds the ox_inventory adapter.
+if not olink._hasOverride('Inventory') and GetResourceState('codem-inventoryv2') == 'started' then return end
 
 local qbInventory = exports['qb-inventory']
 local QBCore = exports['qb-core']:GetCoreObject()

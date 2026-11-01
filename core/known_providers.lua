@@ -7,6 +7,9 @@
 --   find modules -mindepth 2 -maxdepth 2 -type d | sed 's|modules/||' | sort
 --
 -- Keys are matched case-insensitively against live resource names.
+--
+-- codem-inventoryv2 has no folder of its own (it binds the ox_inventory adapter), so keep it when
+-- regenerating.
 
 OxideKnownProviders = {
     ak47_qb_inventory = 'inventory',
@@ -20,6 +23,7 @@ OxideKnownProviders = {
     cd_garage = 'vehiclekey',
     ['cdn-fuel'] = 'fuel',
     ['codem-inventory'] = 'inventory',
+    ['codem-inventoryv2'] = 'inventory',
     core_inventory = 'inventory',
     doors_creator = 'doorlock',
     emergencydispatch = 'dispatch',

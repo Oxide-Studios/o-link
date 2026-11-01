@@ -15,7 +15,7 @@ It lists implementation folders that exist today. It does not guarantee every im
 | `job` | server + client | `es_extended`, `qb-core`, `qbx_core` |
 | `money` | server + client | `es_extended`, `qb-core`, `qbx_core` (client also `_default`) |
 | `license` | server | `es_extended`, `qb-core`, `qbx_core` |
-| `inventory` | server + client | `ak47_qb_inventory`, `codem-inventory`, `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
+| `inventory` | server + client | `ak47_qb_inventory`, `codem-inventory`, `codem-inventoryv2` (through the `ox_inventory` adapter, see [Codem Inventory V2](#codem-inventory-v2)), `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
 | `vehicles` | server | `esx_vehicleshop`, `qb-garages`, `qbx_vehicles` |
 | `vehicleproperties` | client | `modules/vehicles/properties` |
 | `entity` | server + client | built-in framework-agnostic module |
@@ -31,6 +31,7 @@ default stub is itself callable and would report the namespace as available.
 | Adapter | Write | Read | Container |
 |---------|-------|------|-----------|
 | `ox_inventory` | yes | yes | native trunk `trunk<plate>`, resolved from the vehicle entity |
+| `codem-inventoryv2` | yes | yes | native trunk `trunk<plate>`, by plate; `netId` is ignored |
 | `qb-inventory` | yes | yes | `trunk-<plate>` (v2 `CreateInventory`, v1 `inventory:server:addTrunkItems`) |
 | `ak47_qb_inventory` | yes | yes | `trunk-<plate>` |
 | `origen_inventory` | yes | yes | stash `trunk_<plate>` |
@@ -59,6 +60,17 @@ survive on such a vehicle has to keep the contents itself and push them back on 
 Item entries accept either key spelling: `name` or `item`, and `count` or `amount`.
 
 `ClearStash(plate, 'trunk')` empties the same container these write to.
+
+### Codem Inventory V2
+
+`codem-inventoryv2` binds the `ox_inventory` adapter, which then calls `exports['codem-inventoryv2']`. The `codem-inventory` adapter is for V1 only, because V2 changed those exports. V2 support is built from [Codem's documentation](https://codem.gitbook.io/codem-documentation/supreme-series/essentials/inventory-aio) and has not yet been tested on a live V2 server.
+
+- Start `codem-lib`, `codem-inventory-images` and `codem-inventoryv2` before `o-link`.
+- On qb-core, V2 creates `codem-inventory-qbcompat` to carry the name `qb-inventory`. Leave it running. o-link checks for V2 first and does not bind the `qb-inventory` adapter.
+- In `Config.Overrides`, the value for V2 is `ox_inventory`.
+- **Usable items:** V2 runs a framework usable-item callback only when the item's `consume` is unset or `0`. An item with a `consume` of 1 or more, or with a client `status`, `usetime` or `export`, never reaches the resource, and V2 may use it up with no effect. The item lists Oxide resources ship set none of these, so check any definition you wrote yourself, for example in V2's `data/items.lua`.
+- Trunks and gloveboxes use plate ids (`trunk<plate>`, `glovebox<plate>`).
+- Item pictures come from `nui://codem-inventory-images/images/`.
 
 
 ## UI and Interaction

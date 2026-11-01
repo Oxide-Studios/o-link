@@ -2,6 +2,7 @@
 
 if not olink._guardImpl('Inventory', '_default', false) then return end
 if not olink._hasOverride('Inventory') and GetResourceState('codem-inventory') == 'started' then return end
+if not olink._hasOverride('Inventory') and GetResourceState('codem-inventoryv2') == 'started' then return end
 if not olink._hasOverride('Inventory') and GetResourceState('core_inventory') == 'started' then return end
 if not olink._hasOverride('Inventory') and GetResourceState('hex_4_inventory') == 'started' then return end
 if not olink._hasOverride('Inventory') and GetResourceState('jpr-inventory') == 'started' then return end

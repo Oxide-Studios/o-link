@@ -1,10 +1,29 @@
-if not olink._guardImpl('Inventory', 'ox_inventory', 'ox_inventory') then return end
-if not olink._hasOverride('Inventory') and GetResourceState('oxide-inventory') == 'started' then return end
-if not olink._hasOverride('Inventory') and GetResourceState('qb-inventory') == 'started' then return end
+-- Codem Inventory V2 replaces ox_inventory and documents the same calls under its own resource name.
+-- On qb-core it also runs codem-inventory-qbcompat, which only carries the name qb-inventory, so the
+-- qb-inventory check below has to let V2 through.
+-- https://codem.gitbook.io/codem-documentation/supreme-series/essentials/inventory-aio/developers/server-exports
+local codemV2 = GetResourceState('codem-inventoryv2') == 'started'
 
-local ox_inventory = exports.ox_inventory
+if not olink._guardImpl('Inventory', 'ox_inventory', codemV2 and 'codem-inventoryv2' or 'ox_inventory') then return end
+if not olink._hasOverride('Inventory') and GetResourceState('oxide-inventory') == 'started' then return end
+if not codemV2 and not olink._hasOverride('Inventory') and GetResourceState('qb-inventory') == 'started' then return end
+
+local ox_inventory = codemV2 and exports['codem-inventoryv2'] or exports.ox_inventory
+
+local IMAGE_RESOURCE = codemV2 and 'codem-inventory-images' or 'ox_inventory'
+local IMAGE_FOLDER = codemV2 and 'images' or 'web/images'
+local IMAGE_URL = ('nui://%s/%s/'):format(IMAGE_RESOURCE, IMAGE_FOLDER)
 
 local stashes = {}
+
+-- Codem V2 documents a slot's name, count, slot, metadata and weight, but no label.
+---@param slot table
+---@return string|nil
+local function slotLabel(slot)
+    if slot.label or not codemV2 then return slot.label end
+    local def = ox_inventory:Items(slot.name)
+    return def and def.label
+end
 
 -- ox resolves a vehicle inventory through the entity. Given only a plate it
 -- scans world vehicles comparing GetVehicleNumberPlateText, which is unreliable
@@ -17,6 +36,8 @@ local stashes = {}
 ---@param kind string 'trunk'|'glove'
 ---@return table|string
 local function vehicleInv(plate, netId, kind)
+    -- Codem V2 documents plate ids only, and spells the glovebox out in full.
+    if codemV2 then return ('%s%s'):format(kind == 'glove' and 'glovebox' or kind, tostring(plate)) end
     local id = ('%s%s'):format(kind, tostring(plate))
     if type(netId) ~= 'number' or netId <= 0 then return id end
     return { id = id, netid = netId, type = kind == 'glove' and 'glovebox' or 'trunk' }
@@ -33,6 +54,8 @@ local function hookGuard()
     hooked = true
     ox_inventory:registerHook('openInventory', function(payload)
         local id = payload.inventoryId and tostring(payload.inventoryId)
+        -- Codem V2 ids a stash's inventory as stash-<name>.
+        if id and codemV2 then id = id:gsub('^stash%-', '') end
         if not id or not guarded[id] then return true end
         local key = ('%s:%s'):format(payload.source, id)
         local at = approved[key]
@@ -98,7 +121,7 @@ olink._register('inventory', {
         if not data then return nil end
         return {
             name     = data.name,
-            label    = data.label,
+            label    = slotLabel(data),
             count    = data.count,
             slot     = data.slot,
             weight   = data.weight,
@@ -115,7 +138,7 @@ olink._register('inventory', {
         for _, item in pairs(items) do
             result[#result + 1] = {
                 name     = item.name,
-                label    = item.label,
+                label    = slotLabel(item),
                 count    = item.count,
                 slot     = item.slot,
                 weight   = item.weight,
@@ -164,12 +187,12 @@ olink._register('inventory', {
         local data = ox_inventory:Items(item)
         if not data then return {} end
         return {
-            name = data.name,
+            name = data.name or (codemV2 and item or nil),
             label = data.label,
             weight = data.weight,
             description = data.description,
             stack = data.stack,
-            image = ('nui://ox_inventory/web/images/%s'):format(
+            image = ('%s%s'):format(IMAGE_URL,
                 (data.client and data.client.image) or ('%s.png'):format(item)),
         }
     end,
@@ -188,8 +211,11 @@ olink._register('inventory', {
     ---@return string
     GetImagePath = function(item)
         item = olink._stripExt(item)
-        local file = LoadResourceFile('ox_inventory', ('web/images/%s.png'):format(item))
-        if file then return ('nui://ox_inventory/web/images/%s.png'):format(item) end
+        local file = LoadResourceFile(IMAGE_RESOURCE, ('%s/%s.png'):format(IMAGE_FOLDER, item))
+        if file then return ('%s%s.png'):format(IMAGE_URL, item) end
+        if codemV2 and LoadResourceFile(IMAGE_RESOURCE, ('%s/%s.webp'):format(IMAGE_FOLDER, item)) then
+            return ('%s%s.webp'):format(IMAGE_URL, item)
+        end
         return 'https://avatars.githubusercontent.com/u/47620135'
     end,
 
@@ -318,6 +344,11 @@ olink._register('inventory', {
     ---@param src number
     ---@param shopTitle string
     OpenShop = function(src, shopTitle)
+        -- Codem V2 documents openInventory on the client only.
+        if codemV2 then
+            ox_inventory:forceOpenInventory(src, 'shop', { type = shopTitle })
+            return
+        end
         ox_inventory:openInventory(src, 'shop', { type = shopTitle })
     end,
 
@@ -326,6 +357,6 @@ olink._register('inventory', {
     ---@param shopCoords table|nil
     ---@param shopGroups table|nil
     RegisterShop = function(shopTitle, shopInventory, shopCoords, shopGroups)
-        ox_inventory:RegisterShop(shopTitle, { inventory = shopInventory })
+        ox_inventory:RegisterShop(shopTitle, { name = codemV2 and shopTitle or nil, inventory = shopInventory })
     end,
 })
