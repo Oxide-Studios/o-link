@@ -11,11 +11,21 @@ local ESX = exports[RESOURCE]:getSharedObject()
 -- xPlayer.spawned — and Core.SavePlayer returns early when that is false. Without
 -- this the users row (accounts, position, inventory, loadout, metadata) is never
 -- written, silently, for the whole session.
+--
+-- Wait for esx:playerLoaded, not ESX.IsPlayerLoaded(): es_extended sets
+-- PlayerLoaded only once ESX.PlayerData.ped exists, and ped is set by the
+-- esx:onPlayerSpawn and esx:restoreLoadout handlers fired here.
+local playerDataLoaded = ESX.IsPlayerLoaded()
+
+RegisterNetEvent('esx:playerLoaded', function()
+    playerDataLoaded = true
+end)
+
 local function finishEsxSpawn()
     CreateThread(function()
         local deadline = GetGameTimer() + 15000
-        while not ESX.IsPlayerLoaded() and GetGameTimer() < deadline do Wait(50) end
-        if not ESX.IsPlayerLoaded() then
+        while not playerDataLoaded and GetGameTimer() < deadline do Wait(50) end
+        if not playerDataLoaded then
             print('^3[o-link] ESX never finished loading the player, so esx:onPlayerSpawn was skipped. ESX will not save this character.^0')
             return
         end
@@ -59,6 +69,7 @@ RegisterNetEvent('esx_multicharacter:SetupUI', function()
 end)
 
 RegisterNetEvent('esx:onPlayerLogout', function()
+    playerDataLoaded = false
     TriggerEvent('olink:client:startCharacterSelect')
 end)
 
