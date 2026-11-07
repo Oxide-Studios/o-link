@@ -122,7 +122,7 @@ Direct `lib.addRadialItem(...)` calls are not intercepted.
 | `clothing` | shared + server + client | `esx_skin`, `fivem-appearance`, `illenium-appearance`, `oxide-clothing`, `qb-clothing`, `rcore_clothing` |
 | `dispatch` | server + client | `_default`, `bub-mdt`, `cd_dispatch`, `emergencydispatch`, `fd_dispatch`, `kartik-mdt`, `lb-tablet`, `linden_outlawalert`, `origen_police`, `oxide-dispatch`, `piotreq_gpt`, `ps-dispatch`, `qs_dispatch`, `redutzu-mdt`, `tk_dispatch`, `wasabi_mdt` |
 | `doorlock` | server + client | `doors_creator`, `ox_doorlock`, `qb-doorlock`, `rcore_doorlock` |
-| `housing` | server + client | `bcs-housing`, `esx_property`, `ps-housing`, `qb-apartments` (+ `qb-houses`), `qbx_properties` |
+| `housing` | server + client | `bcs-housing`, `esx_property`, `ps-housing`, `qb-apartments` (+ `qb-houses`), `qbx_properties`. `qb-apartments` and `qb-houses` count only when their database tables exist, so rcore_housing, which takes both names, gets no homes or starter apartments |
 | `bossmenu` | server + client | `esx_society`, `qb-management`, `qbx_management` |
 | `skills` | server + client | `_default`, `evolent_skills`, `ot_skills`, `pickle_xp` |
 | `logger` | server + client | `ox_lib` (default), `oxide-logger` (optional, free; overrides ox_lib when installed) |

@@ -968,7 +968,7 @@ Adapter-specific: `esx_skin` and `qb-clothing` use the framework's native table 
 
 **Housing helpers (server, adapter-dependent)**
 
-For the unified multichar spawn flow. `GetOwnedProperties` lists for a selector; `SpawnInside` delegates placement to the property resource (which owns the interior coords / routing bucket); `CreateStartingApartment` grants + enters a free apartment on creation. Implemented by `qb-apartments` (also bridges `qb-houses`), `qbx_properties`, and `esx_property`. o-link only processes the data — the caller (oxide-multichar) owns the apartment definition.
+For the unified multichar spawn flow. `GetOwnedProperties` lists for a selector; `SpawnInside` delegates placement to the property resource (which owns the interior coords / routing bucket); `CreateStartingApartment` grants + enters a free apartment on creation. Implemented by `qb-apartments` (also bridges `qb-houses`), `qbx_properties`, and `esx_property`. The `qb-apartments` adapter uses qb-apartments only when the `apartments` table exists, and qb-houses only when the `player_houses` and `houselocations` tables exist. A resource that takes those names without the tables, such as rcore_housing, gets no owned properties and no starter apartments, and `CreateStartingApartment` and `SpawnInside` return `false`. o-link only processes the data — the caller (oxide-multichar) owns the apartment definition.
 
 | Function | Args | Returns | Description |
 |----------|------|---------|-------------|
