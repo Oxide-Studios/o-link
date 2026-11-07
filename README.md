@@ -59,7 +59,7 @@ When the server starts, o-link checks for a newer version and prints a notice in
 
 The automatic download cannot create new folders. When a release adds folders, it prints `this release must be installed manually` and changes nothing.
 
-- **On 1.12.0 or newer:** 1.12.1 to 1.13.0 add no folders, so the automatic download applies them. Without `AutoDownloadUpdates`, install it by hand as below.
+- **On 1.12.0 or newer:** 1.12.1 to 1.13.1 add no folders, so the automatic download applies them. Without `AutoDownloadUpdates`, install it by hand as below.
 - **On 1.11.0 or older:** 1.12.0 added 14 folders, so install by hand once. That takes you straight to the latest version.
 
 To install by hand:
