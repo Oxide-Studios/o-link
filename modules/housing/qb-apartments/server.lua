@@ -9,8 +9,29 @@ local HOUSES = 'qb-houses'
 if GetResourceState(APARTMENTS) == 'missing' and GetResourceState(HOUSES) == 'missing' then return end
 if not olink._guardImpl('Housing', APARTMENTS, false) then return end
 
-local function aptStarted() return GetResourceState(APARTMENTS) == 'started' end
-local function housesStarted() return GetResourceState(HOUSES) == 'started' end
+-- rcore_housing `provide`s both names without their tables, so a started name
+-- alone does not mean the tables exist. Cached once known.
+local tableCache = {}
+local function TableExists(name)
+    if tableCache[name] ~= nil then return tableCache[name] end
+    local count = tonumber(MySQL.scalar.await([[
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+    ]], { name }))
+    if not count then return false end
+    tableCache[name] = count > 0
+    return tableCache[name]
+end
+
+local function aptStarted()
+    return GetResourceState(APARTMENTS) == 'started' and TableExists('apartments')
+end
+
+local function housesStarted()
+    return GetResourceState(HOUSES) == 'started' and TableExists('player_houses') and TableExists('houselocations')
+end
 
 -- Presence relay (kept from the former qb-houses adapter): mirror the player's
 -- inside/outside state into the housing relay.
@@ -65,8 +86,8 @@ local aptDefs = loadAptDefs()
 
 olink._register('housing', {
     GetResourceName = function()
-        if aptStarted() then return APARTMENTS end
-        if housesStarted() then return HOUSES end
+        if GetResourceState(APARTMENTS) == 'started' then return APARTMENTS end
+        if GetResourceState(HOUSES) == 'started' then return HOUSES end
         return APARTMENTS
     end,
 
