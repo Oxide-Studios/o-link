@@ -15,7 +15,7 @@ It lists implementation folders that exist today. It does not guarantee every im
 | `job` | server + client | `es_extended`, `qb-core`, `qbx_core` |
 | `money` | server + client | `es_extended`, `qb-core`, `qbx_core` (client also `_default`) |
 | `license` | server | `es_extended`, `qb-core`, `qbx_core` |
-| `inventory` | server + client | `ak47_qb_inventory`, `codem-inventory`, `codem-inventoryv2` (through the `ox_inventory` adapter, see [Codem Inventory V2](#codem-inventory-v2)), `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
+| `inventory` | server + client | `ak47_qb_inventory` (see [ak47_qb_inventory](#ak47_qb_inventory)), `codem-inventory`, `codem-inventoryv2` (through the `ox_inventory` adapter, see [Codem Inventory V2](#codem-inventory-v2)), `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `origen_inventory`, `ox_inventory`, `ps-inventory`, `qb-inventory`, `qs-inventory`, `tgiann-inventory` |
 | `vehicles` | server | `esx_vehicleshop`, `qb-garages`, `qbx_vehicles` |
 | `vehicleproperties` | client | `modules/vehicles/properties` |
 | `entity` | server + client | built-in framework-agnostic module |
@@ -33,7 +33,7 @@ default stub is itself callable and would report the namespace as available.
 | `ox_inventory` | yes | yes | native trunk `trunk<plate>`, resolved from the vehicle entity |
 | `codem-inventoryv2` | yes | yes | native trunk `trunk<plate>`, by plate; `netId` is ignored |
 | `qb-inventory` | yes | yes | `trunk-<plate>` (v2 `CreateInventory`, v1 `inventory:server:addTrunkItems`) |
-| `ak47_qb_inventory` | yes | yes | `trunk-<plate>` |
+| `ak47_qb_inventory` | yes | yes | `trunk:<plate>`, plate trimmed |
 | `origen_inventory` | yes | yes | stash `trunk_<plate>` |
 | `tgiann-inventory` | yes | **no** | native secondary inventory `trunk` |
 | `codem-inventory`, `core_inventory`, `hex_4_inventory`, `jpr-inventory`, `ps-inventory`, `qs-inventory`, `_default` | no | no | -- |
@@ -71,6 +71,17 @@ Item entries accept either key spelling: `name` or `item`, and `count` or `amoun
 - **Usable items:** V2 runs a framework usable-item callback only when the item's `consume` is unset or `0`. An item with a `consume` of 1 or more, or with a client `status`, `usetime` or `export`, never reaches the resource, and V2 may use it up with no effect. The item lists Oxide resources ship set none of these, so check any definition you wrote yourself, for example in V2's `data/items.lua`.
 - Trunks and gloveboxes use plate ids (`trunk<plate>`, `glovebox<plate>`).
 - Item pictures come from `nui://codem-inventory-images/images/`.
+
+### ak47_qb_inventory
+
+`ak47_qb_inventory` also carries the name `qb-inventory`. o-link checks for ak47 first and binds the `ak47_qb_inventory` adapter on the server, not the `qb-inventory` adapter. The client keeps the `qb-inventory` adapter, which counts the player's items correctly on ak47. Tested on ak47_qb_inventory 12.2 with QBCore.
+
+- Start `ak47_qb_inventory` before `o-link`. o-link picks its adapters when it starts. If ak47 starts later, o-link uses its built-in fallback on the server, and every item, stash, trunk and shop call does nothing.
+- Leave `Inventory` unset in `Config.Overrides`. Setting it to `ak47_qb_inventory` also moves the client to ak47's own adapter, which counts every item as zero on ak47 12.2.
+- A stash opens only when a resource registered it through o-link or ak47 already has it saved. Any other stash id opens nothing.
+- A new stash registered without a size gets 20 slots and 5 kg.
+- Trunks and gloveboxes use ak47's ids, `trunk:<plate>` and `glovebox:<plate>`, with the spaces around the plate trimmed. A trunk that a resource fills before any player has opened it gets 35 slots and 60 kg on every vehicle.
+- Shops registered through o-link open in ak47's shop screen. ak47 12.2 sells every item without a stock limit and does not limit shops to jobs.
 
 
 ## UI and Interaction
