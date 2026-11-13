@@ -1,6 +1,5 @@
 if not olink._guardImpl('Inventory', 'ak47_qb_inventory', 'ak47_qb_inventory') then return end
 if not olink._hasOverride('Inventory') and GetResourceState('oxide-inventory') == 'started' then return end
-if not olink._hasOverride('Inventory') and GetResourceState('qb-inventory') == 'started' then return end
 
 local ak47 = exports['ak47_qb_inventory']
 local QBCore = exports['qb-core']:GetCoreObject()
@@ -119,10 +118,11 @@ olink._register('inventory', {
     RegisterStash = function(id, label, slots, weight, owner)
         id = tostring(id)
         if stashes[id] then return true end
+        -- LoadInventory reads a stash saved before a restart, or creates it.
+        local loaded = ak47:GetInventory(id)
+            or ak47:LoadInventory(id, { label = label, slots = slots, maxWeight = weight, type = 'stash' })
+        if not loaded then return false end
         stashes[id] = { label = label, slots = slots, weight = weight, owner = owner }
-        if not ak47:GetInventory(id) then
-            ak47:CreateInventory(id, { label = label, slots = slots, maxweight = weight })
-        end
         return true
     end,
 
