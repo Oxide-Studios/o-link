@@ -79,6 +79,11 @@ olink._register('inventory', {
         item = olink._stripExt(item)
         local file = LoadResourceFile('qb-inventory', ('html/images/%s.png'):format(item))
         if file then return ('nui://qb-inventory/html/images/%s.png'):format(item) end
+        -- ak47_qb_inventory answers for qb-inventory but keeps its images under its own name.
+        if GetResourceState('ak47_qb_inventory') == 'started'
+            and LoadResourceFile('ak47_qb_inventory', ('web/build/images/%s.png'):format(item)) then
+            return ('nui://ak47_qb_inventory/web/build/images/%s.png'):format(item)
+        end
         return ''
     end,
 

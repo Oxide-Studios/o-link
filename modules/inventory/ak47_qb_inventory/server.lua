@@ -4,8 +4,60 @@ if not olink._hasOverride('Inventory') and GetResourceState('oxide-inventory') =
 local ak47 = exports['ak47_qb_inventory']
 local QBCore = exports['qb-core']:GetCoreObject()
 
+-- A stash registered without a size gets what it had on ak47 before this adapter bound.
+local DEFAULT_STASH_SLOTS, DEFAULT_STASH_WEIGHT = 20, 5000
+-- Size of a trunk filled before any player opened it: ak47's shipped size for emergency vehicles,
+-- the police fleet being what fills trunks. ak47 keeps this size when a player opens the trunk.
+local TRUNK_SLOTS, TRUNK_WEIGHT = 35, 60000
+
 local stashes = {}
 local shopData = {}
+
+-- ak47 reads an inventory only while it is in memory. LoadInventory without data loads a saved
+-- one and never creates one.
+local function isLoaded(id)
+    if ak47:GetInventory(id) then return true end
+    local ok, result = pcall(function() return ak47:LoadInventory(id) end)
+    return ok and result == true
+end
+
+-- A registered stash that was never saved, or that ak47 dropped from memory, is loaded again
+-- with its registered size.
+local function ensureStash(id)
+    if isLoaded(id) then return true end
+    local stash = stashes[id]
+    if not stash then return false end
+    local ok, result = pcall(function()
+        return ak47:LoadInventory(id, { label = stash.label, slots = stash.slots, maxWeight = stash.weight, type = 'stash' })
+    end)
+    return ok and result == true
+end
+
+-- ak47 names vehicle storage 'trunk:<plate>' and 'glovebox:<plate>', with the plate's padding trimmed.
+local function vehicleInv(kind, plate)
+    return ('%s:%s'):format(kind, tostring(plate):match('^%s*(.-)%s*$'))
+end
+
+-- ak47 lists every slot, empty ones as {}, under qb key names. Return the occupied slots with
+-- both key spellings.
+local function occupied(items)
+    local out = {}
+    for _, item in pairs(items or {}) do
+        if type(item) == 'table' and item.name then
+            out[#out + 1] = {
+                name     = item.name,
+                label    = item.label or item.name,
+                count    = item.amount,
+                amount   = item.amount,
+                slot     = item.slot,
+                weight   = item.weight,
+                metadata = item.info or {},
+                info     = item.info or {},
+            }
+        end
+    end
+    return out
+end
 
 olink._register('inventory', {
     -- GetStashItems reads real contents.
@@ -67,7 +119,7 @@ olink._register('inventory', {
     ---@return table|nil SlotData
     GetItemBySlot = function(src, slot)
         local data = ak47:GetSlot(src, slot)
-        if not data then return nil end
+        if not data or not data.name then return nil end
         return {
             name     = data.name,
             label    = data.label or data.name,
@@ -117,19 +169,22 @@ olink._register('inventory', {
     ---@return boolean
     RegisterStash = function(id, label, slots, weight, owner)
         id = tostring(id)
-        if stashes[id] then return true end
-        -- LoadInventory reads a stash saved before a restart, or creates it.
-        local loaded = ak47:GetInventory(id)
-            or ak47:LoadInventory(id, { label = label, slots = slots, maxWeight = weight, type = 'stash' })
-        if not loaded then return false end
-        stashes[id] = { label = label, slots = slots, weight = weight, owner = owner }
-        return true
+        -- ak47 refuses to load a stash with no slots or maxWeight.
+        stashes[id] = {
+            label  = label or id,
+            slots  = tonumber(slots) or DEFAULT_STASH_SLOTS,
+            weight = tonumber(weight) or DEFAULT_STASH_WEIGHT,
+            owner  = owner,
+        }
+        return ensureStash(id)
     end,
 
     ---@param src number
     ---@param stashId string
     OpenStash = function(src, stashId)
-        ak47:OpenInventory(src, tostring(stashId))
+        stashId = tostring(stashId)
+        if not ensureStash(stashId) then return end
+        ak47:OpenInventory(src, stashId)
     end,
 
     ---@param item string
@@ -170,8 +225,8 @@ olink._register('inventory', {
     ---@return string
     GetImagePath = function(item)
         item = olink._stripExt(item)
-        local file = LoadResourceFile('ak47_qb_inventory', ('html/images/%s.png'):format(item))
-        if file then return ('nui://ak47_qb_inventory/html/images/%s.png'):format(item) end
+        local file = LoadResourceFile('ak47_qb_inventory', ('web/build/images/%s.png'):format(item))
+        if file then return ('nui://ak47_qb_inventory/web/build/images/%s.png'):format(item) end
         return 'https://avatars.githubusercontent.com/u/47620135'
     end,
 
@@ -191,8 +246,9 @@ olink._register('inventory', {
     ---@param id string
     ---@return table[]
     GetStashItems = function(id)
-        local inv = ak47:GetInventory(tostring(id))
-        return (inv and inv.items) or {}
+        id = tostring(id)
+        if not ensureStash(id) then return {} end
+        return occupied(ak47:GetInventory(id).items)
     end,
 
     ---@param id string
@@ -200,8 +256,11 @@ olink._register('inventory', {
     ---@param count number
     ---@return boolean
     RemoveStashItem = function(id, item, count)
-        local success = ak47:RemoveItem(tostring(id), item, count, nil, false)
-        return success == true
+        id = tostring(id)
+        -- ak47 raises an error when the inventory is not in memory.
+        if not ensureStash(id) then return false end
+        local ok, success = pcall(function() return ak47:RemoveItem(id, item, count) end)
+        return ok and success == true
     end,
 
     ---@param id string
@@ -210,68 +269,74 @@ olink._register('inventory', {
     ---@param metadata table|nil
     ---@return boolean
     AddStashItem = function(id, item, count, metadata)
-        local success = ak47:AddItem(tostring(id), item, count or 1, nil, metadata)
-        return success == true
+        id = tostring(id)
+        if not ensureStash(id) then return false end
+        local ok, success = pcall(function() return ak47:AddItem(id, item, count or 1, nil, metadata) end)
+        return ok and success == true
     end,
 
     ---@param id string
     ---@param items table[] { item, count, metadata }
-    ---@return boolean
+    ---@return boolean true when every item was stored
     AddStashItems = function(id, items)
         if type(items) ~= 'table' then return false end
-        local success = false
+        id = tostring(id)
+        if not ensureStash(id) then return false end
+        local stored = true
         for _, item in pairs(items) do
-            success = ak47:AddItem(id, item.item, item.count or item.amount, nil,
-                item.metadata or item.info)
+            local ok, success = pcall(function()
+                return ak47:AddItem(id, item.item or item.name, item.count or item.amount or 1, nil,
+                    item.metadata or item.info)
+            end)
+            if not (ok and success == true) then stored = false end
         end
-        return success == true
+        return stored
     end,
 
-    ---@param id string
+    ---@param id string stash id, or the plate with 'trunk'/'glovebox'
     ---@param _type string|nil 'stash', 'trunk', 'glovebox'
     ---@return boolean
     ClearStash = function(id, _type)
         if type(id) ~= 'string' then return false end
-        if stashes[id] then stashes[id] = nil end
-        if _type == 'trunk' then
-            id = 'trunk-' .. id
-        elseif _type == 'glovebox' then
-            id = 'glovebox-' .. id
-        end
-        if not ak47:GetInventory(id) then return true end
-        ak47:ClearInventory(id)
-        return true
+        if _type == 'trunk' or _type == 'glovebox' then id = vehicleInv(_type, id) end
+        -- Nothing is saved under this id, so there is nothing to clear.
+        if not isLoaded(id) then return true end
+        local ok = pcall(function() ak47:ClearInventory(id) end)
+        return ok
     end,
 
-    ---@param identifier string plate or trunk identifier
-    ---@param items table[]
-    ---@return boolean
-
     ---@param identifier string plate
-    ---@return table[] items
+    ---@return table[]|nil items, nil when the trunk is not loaded or saved
     GetTrunkItems = function(identifier)
-        local ok, inv = pcall(function()
-            return ak47:GetInventory('trunk-' .. tostring(identifier))
-        end)
-        if not ok or type(inv) ~= 'table' then return nil end
-        return inv.items or inv
+        local trunkId = vehicleInv('trunk', identifier)
+        local ok, loaded = pcall(isLoaded, trunkId)
+        if not (ok and loaded) then return nil end
+        return occupied(ak47:GetInventory(trunkId).items)
     end,
 
     ---@param identifier string plate
     ---@param items table[] { name|item, count|amount, metadata|info }
-    ---@return boolean
+    ---@return boolean true when at least one item was stored
     AddTrunkItems = function(identifier, items)
         if type(items) ~= 'table' then return false end
-        local trunkId = 'trunk-' .. identifier
-        if not ak47:GetInventory(trunkId) then
-            ak47:CreateInventory(trunkId, { label = trunkId, slots = 15, maxweight = 10000 })
+        if #items == 0 then return true end
+        local trunkId = vehicleInv('trunk', identifier)
+        if not isLoaded(trunkId) then
+            local ok, created = pcall(function()
+                return ak47:LoadInventory(trunkId, { label = trunkId:upper(), slots = TRUNK_SLOTS, maxWeight = TRUNK_WEIGHT, type = 'trunk' })
+            end)
+            if not (ok and created == true) then return false end
         end
-        Wait(100)
+        local stored = false
         for i = 1, #items do
-            ak47:AddItem(trunkId, items[i].name or items[i].item, items[i].amount or items[i].count,
-                items[i].slot, items[i].info or items[i].metadata or {})
+            local entry = items[i]
+            local ok, success = pcall(function()
+                return ak47:AddItem(trunkId, entry.name or entry.item, entry.amount or entry.count or 1,
+                    entry.slot, entry.info or entry.metadata or {})
+            end)
+            if ok and success == true then stored = true end
         end
-        return true
+        return stored
     end,
 
     ---@param oldPlate string
@@ -279,32 +344,23 @@ olink._register('inventory', {
     ---@return boolean
     UpdatePlate = function(oldPlate, newPlate)
         local ok = pcall(function() ak47:OnChangeVehiclePlate(oldPlate, newPlate) end)
-        if ok then
-            if GetResourceState('jg-mechanic') == 'started' then
-                exports['jg-mechanic']:vehiclePlateUpdated(oldPlate, newPlate)
+        if not ok then
+            -- No OnChangeVehiclePlate: copy each container to the new plate, then empty the old one.
+            for _, kind in ipairs({ 'glovebox', 'trunk' }) do
+                local from, to = vehicleInv(kind, oldPlate), vehicleInv(kind, newPlate)
+                if isLoaded(from) then
+                    local inv = ak47:GetInventory(from)
+                    local ready = isLoaded(to) or ak47:LoadInventory(to, {
+                        label = to:upper(), slots = inv.slots, maxWeight = inv.maxWeight, type = kind,
+                    }) == true
+                    if ready then
+                        for _, item in pairs(inv.items or {}) do
+                            if item.name then ak47:AddItem(to, item.name, item.amount, item.slot, item.info) end
+                        end
+                        ak47:ClearInventory(from)
+                    end
+                end
             end
-            return true
-        end
-
-        local glovebox = ak47:GetInventory('glovebox-' .. oldPlate) or { slots = 5, maxweight = 10000, items = {} }
-        local trunk = ak47:GetInventory('trunk-' .. oldPlate) or { slots = 5, maxweight = 10000, items = {} }
-        ak47:ClearInventory('glovebox-' .. oldPlate)
-        ak47:ClearInventory('trunk-' .. oldPlate)
-        ak47:CreateInventory('glovebox-' .. newPlate, {
-            label = 'glovebox-' .. newPlate,
-            slots = glovebox.slots,
-            maxweight = glovebox.maxweight,
-        })
-        ak47:CreateInventory('trunk-' .. newPlate, {
-            label = 'trunk-' .. newPlate,
-            slots = trunk.slots,
-            maxweight = trunk.maxweight,
-        })
-        for _, item in pairs(glovebox.items or {}) do
-            ak47:AddItem('glovebox-' .. newPlate, item.name, item.amount, item.slot, item.info)
-        end
-        for _, item in pairs(trunk.items or {}) do
-            ak47:AddItem('trunk-' .. newPlate, item.name, item.amount, item.slot, item.info)
         end
         if GetResourceState('jg-mechanic') == 'started' then
             exports['jg-mechanic']:vehiclePlateUpdated(oldPlate, newPlate)
@@ -315,44 +371,36 @@ olink._register('inventory', {
     ---@param src number
     ---@param shopTitle string
     OpenShop = function(src, shopTitle)
-        local ok = pcall(function() ak47:OpenShop(src, shopTitle) end)
-        if ok then return end
-
-        local data = shopData[shopTitle]
-        if not data then return end
-        TriggerClientEvent('inventory:client:OpenInventory', src, 'shop', shopTitle, data)
+        shopTitle = tostring(shopTitle)
+        local inv = ak47:GetInventory(shopTitle)
+        if not inv or inv.type ~= 'shop' then return end
+        ak47:OpenInventory(src, shopTitle)
     end,
 
     ---@param shopTitle string
     ---@param shopInventory table
-    ---@param shopCoords table|nil
-    ---@param shopGroups table|nil
+    ---@param shopCoords table|nil not used by ak47
+    ---@param shopGroups table|nil not used by ak47
     ---@return boolean
     RegisterShop = function(shopTitle, shopInventory, shopCoords, shopGroups)
         if not shopTitle or not shopInventory then return false end
+        shopTitle = tostring(shopTitle)
         if shopData[shopTitle] then return true end
 
-        local repackedItems = {}
+        -- An item without a count is sold without a stock limit.
+        local items = {}
         for _, v in pairs(shopInventory) do
-            repackedItems[#repackedItems + 1] = {
-                name   = v.name,
-                price  = v.price,
-                amount = v.count or v.amount or 1000,
-                info   = v.metadata or v.info or {},
-                type   = 'item',
+            items[#items + 1] = {
+                item     = v.name,
+                buyPrice = v.price,
+                amount   = v.count or v.amount,
+                info     = v.metadata or v.info,
             }
         end
 
-        shopData[shopTitle] = { inventory = repackedItems, coords = shopCoords, groups = shopGroups,
-            label = shopTitle, items = repackedItems, slots = #repackedItems }
-
-        local ok = pcall(function()
-            ak47:CreateShop({ name = shopTitle, label = shopTitle, coords = shopCoords, items = repackedItems })
-        end)
-        if not ok then
-            -- Fork doesn't expose CreateShop; cache shop data so OpenShop can fall back to legacy event
-            return true
-        end
+        local ok = pcall(function() ak47:CreateShop(shopTitle, shopTitle, items, 'cash') end)
+        if not ok then return false end
+        shopData[shopTitle] = { coords = shopCoords, groups = shopGroups }
         return true
     end,
 })
